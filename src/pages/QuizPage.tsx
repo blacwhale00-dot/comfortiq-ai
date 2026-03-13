@@ -1,30 +1,37 @@
 import { useState, useCallback } from "react";
 import Layout from "@/components/Layout";
-import ComfortAIChat from "@/components/ComfortAIChat";
 import { Button } from "@/components/ui/button";
 import { useNavigate } from "react-router-dom";
 import { ChevronRight, ChevronLeft } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
+import { motion } from "framer-motion";
+import comfortAvatar from "@/assets/comfort-avatar.png";
 
-const stages = ["Personal Info", "Home Details", "Comfort Issues", "Priorities"];
-
+const stageLabels = ["Your Home Profile", "Home Details", "Comfort Issues", "Priorities"];
 const squareFootageOptions = ["Under 1,000", "1,000–1,500", "1,500–2,000", "2,000–2,500", "2,500–3,000", "3,000–4,000", "4,000+"];
-
-const comfortChallenges = [
-  "High Energy Bills",
-  "Uneven Temperatures",
-  "Poor Air Quality",
-  "Too Noisy",
-  "Unreliable System",
-];
-
+const comfortChallenges = ["High Energy Bills", "Uneven Temperatures", "Poor Air Quality", "Too Noisy", "Unreliable System"];
 const priorityCards = [
   { id: "budget", title: "Budget Focused", desc: "Get reliable comfort at the best price", emoji: "💰" },
   { id: "efficiency", title: "Efficiency & Value", desc: "Balance performance with long-term savings", emoji: "⚡" },
   { id: "ultimate", title: "Ultimate Comfort", desc: "The best technology for total home comfort", emoji: "✨" },
 ];
-
 const usStates = ["AL","AK","AZ","AR","CA","CO","CT","DE","FL","GA","HI","ID","IL","IN","IA","KS","KY","LA","ME","MD","MA","MI","MN","MS","MO","MT","NE","NV","NH","NJ","NM","NY","NC","ND","OH","OK","OR","PA","RI","SC","SD","TN","TX","UT","VT","VA","WA","WV","WI","WY"];
+
+const comfortMessages = [
+  "Hi! I'm Comfort 👋 — your AI home advisor, trained by a 15-year HVAC expert. Fill in your details above and I'll guide you every step of the way!",
+  "Great progress! Now tell me about your home — this helps me understand your comfort needs and find the right system.",
+  "What comfort challenges are you experiencing? Select all that apply — the more I know, the better I can help!",
+  "Almost done! What matters most to you? This helps me tailor your personalized estimate.",
+];
+
+const fadeIn = {
+  hidden: { opacity: 0, y: 16 },
+  visible: { opacity: 1, y: 0, transition: { duration: 0.35, ease: "easeOut" as const } },
+};
+
+const inputClass =
+  "w-full px-4 py-3.5 rounded-xl bg-surface border border-border text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary/40 transition-all";
+const labelClass = "text-sm font-medium text-foreground mb-1.5 block";
 
 export default function QuizPage() {
   const navigate = useNavigate();
@@ -67,7 +74,6 @@ export default function QuizPage() {
         project_tier: form.priority || null,
         funnel_status: nextStage >= 4 ? "quiz_complete" : `stage_${nextStage}`,
       };
-
       if (sessionId) {
         await supabase.from("quiz_sessions").update(data).eq("id", sessionId);
       } else {
@@ -87,171 +93,209 @@ export default function QuizPage() {
       setStage(stage + 1);
     } else {
       await saveSession(4);
-      // Store session ID for missions page
       if (sessionId) localStorage.setItem("comfortiq_session", sessionId);
       navigate("/missions");
     }
   };
   const prev = () => stage > 0 && setStage(stage - 1);
 
-  const chatMessages: string[] = [];
-  if (stage === 0) chatMessages.push("Let's start with your basic info so I can personalize your experience!");
-  if (stage === 1) chatMessages.push("Great! Now tell me about your home. This helps me understand your comfort needs.");
-  if (stage === 2) chatMessages.push("What comfort challenges are you experiencing? Select all that apply.");
-  if (stage === 3) chatMessages.push("Almost done! What matters most to you? This helps me tailor your estimate.");
-
-  const inputClass = "w-full px-4 py-3 rounded-xl bg-surface border border-border text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/30 transition-all";
-  const labelClass = "text-sm font-medium text-foreground mb-1.5 block";
+  const progress = ((stage + 1) / 4) * 100;
 
   return (
     <Layout>
-      {/* Progress */}
+      {/* Progress bar */}
       <div className="bg-surface border-b border-border">
         <div className="container py-4">
-          <div className="flex items-center gap-2 mb-3">
-            {stages.map((s, i) => (
-              <div key={s} className="flex items-center gap-2 flex-1">
-                <div className={`flex items-center gap-2 ${i <= stage ? "text-primary" : "text-muted-foreground"}`}>
-                  <div className={`w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold ${
-                    i < stage ? "gradient-teal text-primary-foreground" : i === stage ? "border-2 border-primary text-primary" : "border border-border text-muted-foreground"
-                  }`}>
-                    {i < stage ? "✓" : i + 1}
-                  </div>
-                  <span className="text-xs font-medium hidden sm:inline">{s}</span>
-                </div>
-                {i < 3 && <div className={`flex-1 h-0.5 ${i < stage ? "bg-primary" : "bg-border"}`} />}
-              </div>
-            ))}
+          <div className="flex items-center justify-between mb-2">
+            <p className="text-xs font-semibold tracking-wide uppercase text-muted-foreground">
+              Step {stage + 1} of 4
+            </p>
+            <p className="text-xs font-medium text-primary">{Math.round(progress)}%</p>
           </div>
-          <div className="w-full bg-border rounded-full h-1.5">
+          <div className="w-full bg-border rounded-full h-2">
             <div
-              className="h-1.5 rounded-full gradient-teal transition-all duration-500 ease-out"
-              style={{ width: `${((stage + 1) / 4) * 100}%` }}
+              className="h-2 rounded-full gradient-teal transition-all duration-500 ease-out"
+              style={{ width: `${progress}%` }}
             />
           </div>
         </div>
       </div>
 
-      <div className="container py-8">
-        <div className="grid lg:grid-cols-5 gap-8">
-          {/* Form */}
-          <div className="lg:col-span-3">
-            <div className="bg-background rounded-2xl shadow-card p-6 md:p-8">
-              <h2 className="text-xl font-display font-bold text-foreground mb-6">{stages[stage]}</h2>
+      <div className="container py-8 max-w-2xl">
+        {/* Title */}
+        <motion.h1
+          key={`title-${stage}`}
+          initial="hidden"
+          animate="visible"
+          variants={fadeIn}
+          className="text-2xl md:text-3xl font-display font-bold text-foreground mb-8"
+        >
+          Step {stage + 1}: {stageLabels[stage]}
+        </motion.h1>
 
-              <div className="animate-fade-in" key={stage}>
-                {stage === 0 && (
-                  <div className="grid sm:grid-cols-2 gap-4">
-                    <div><label className={labelClass}>First Name</label><input className={inputClass} placeholder="John" value={form.firstName} onChange={(e) => update("firstName", e.target.value)} /></div>
-                    <div><label className={labelClass}>Last Name</label><input className={inputClass} placeholder="Smith" value={form.lastName} onChange={(e) => update("lastName", e.target.value)} /></div>
-                    <div><label className={labelClass}>Email</label><input className={inputClass} type="email" placeholder="john@example.com" value={form.email} onChange={(e) => update("email", e.target.value)} /></div>
-                    <div><label className={labelClass}>Phone</label><input className={inputClass} type="tel" placeholder="(404) 555-0123" value={form.phone} onChange={(e) => update("phone", e.target.value)} /></div>
-                    <div><label className={labelClass}>Age</label><input className={inputClass} type="number" placeholder="35" value={form.age} onChange={(e) => update("age", e.target.value)} /></div>
-                    <div className="sm:col-span-2"><label className={labelClass}>Street Address</label><input className={inputClass} placeholder="123 Peachtree St" value={form.street} onChange={(e) => update("street", e.target.value)} /></div>
-                    <div><label className={labelClass}>City</label><input className={inputClass} placeholder="Atlanta" value={form.city} onChange={(e) => update("city", e.target.value)} /></div>
-                    <div><label className={labelClass}>State</label>
-                      <select className={inputClass} value={form.state} onChange={(e) => update("state", e.target.value)}>
-                        {usStates.map((s) => <option key={s} value={s}>{s}</option>)}
-                      </select>
-                    </div>
-                    <div><label className={labelClass}>ZIP Code</label><input className={inputClass} placeholder="30301" value={form.zip} onChange={(e) => update("zip", e.target.value)} /></div>
-                  </div>
-                )}
-
-                {stage === 1 && (
-                  <div className="space-y-6">
-                    <div>
-                      <label className={labelClass}>System Age: {form.systemAge} years</label>
-                      <input type="range" min={0} max={30} value={form.systemAge} onChange={(e) => update("systemAge", +e.target.value)}
-                        className="w-full h-2 rounded-full bg-border appearance-none cursor-pointer mt-2" style={{ accentColor: "hsl(181, 82%, 25%)" }} />
-                      <div className="flex justify-between text-xs text-muted-foreground mt-1"><span>0 years</span><span>30 years</span></div>
-                    </div>
-                    <div>
-                      <label className={labelClass}>Square Footage</label>
-                      <select className={inputClass} value={form.sqft} onChange={(e) => update("sqft", e.target.value)}>
-                        <option value="">Select...</option>
-                        {squareFootageOptions.map((o) => <option key={o} value={o}>{o} sq ft</option>)}
-                      </select>
-                    </div>
-                    <div>
-                      <label className={labelClass}>Number of Systems</label>
-                      <div className="flex gap-3">
-                        {["1", "2", "3+"].map((n) => (
-                          <button key={n} onClick={() => update("numSystems", n)}
-                            className={`flex-1 py-3 rounded-xl text-sm font-medium border transition-all ${
-                              form.numSystems === n ? "border-primary bg-primary/10 text-primary" : "border-border bg-surface text-muted-foreground hover:border-primary/30"
-                            }`}>{n}</button>
-                        ))}
-                      </div>
-                    </div>
-                    <div>
-                      <label className={labelClass}>Health conditions in home?</label>
-                      <div className="flex gap-3">
-                        {[true, false].map((v) => (
-                          <button key={String(v)} onClick={() => update("healthConditions", v)}
-                            className={`flex-1 py-3 rounded-xl text-sm font-medium border transition-all ${
-                              form.healthConditions === v ? "border-primary bg-primary/10 text-primary" : "border-border bg-surface text-muted-foreground hover:border-primary/30"
-                            }`}>{v ? "Yes" : "No"}</button>
-                        ))}
-                      </div>
-                    </div>
-                  </div>
-                )}
-
-                {stage === 2 && (
-                  <div className="grid sm:grid-cols-2 gap-3">
-                    {comfortChallenges.map((c) => (
-                      <button key={c} onClick={() => toggleChallenge(c)}
-                        className={`p-4 rounded-xl text-left text-sm font-medium border transition-all ${
-                          form.challenges.includes(c)
-                            ? "border-primary bg-primary/10 text-primary shadow-card"
-                            : "border-border bg-surface text-muted-foreground hover:border-primary/30"
-                        }`}>
-                        <span className="mr-2">{form.challenges.includes(c) ? "✅" : "⬜"}</span>
-                        {c}
-                      </button>
-                    ))}
-                  </div>
-                )}
-
-                {stage === 3 && (
-                  <div className="space-y-6">
-                    <div className="grid sm:grid-cols-3 gap-4">
-                      {priorityCards.map((p) => (
-                        <button key={p.id} onClick={() => update("priority", p.id)}
-                          className={`p-6 rounded-2xl text-center border-2 transition-all ${
-                            form.priority === p.id
-                              ? "border-primary bg-primary/5 shadow-card"
-                              : "border-border hover:border-primary/30"
-                          }`}>
-                          <div className="text-3xl mb-3">{p.emoji}</div>
-                          <h4 className="font-display font-bold text-foreground text-sm mb-1">{p.title}</h4>
-                          <p className="text-xs text-muted-foreground">{p.desc}</p>
-                        </button>
-                      ))}
-                    </div>
-                  </div>
-                )}
+        {/* Form card */}
+        <motion.div
+          key={`form-${stage}`}
+          initial="hidden"
+          animate="visible"
+          variants={fadeIn}
+          className="bg-background rounded-2xl shadow-card p-6 md:p-8"
+        >
+          {stage === 0 && (
+            <div className="space-y-5">
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className={labelClass}>First Name</label>
+                  <input className={inputClass} placeholder="John" value={form.firstName} onChange={(e) => update("firstName", e.target.value)} />
+                </div>
+                <div>
+                  <label className={labelClass}>Last Name</label>
+                  <input className={inputClass} placeholder="Smith" value={form.lastName} onChange={(e) => update("lastName", e.target.value)} />
+                </div>
               </div>
-
-              {/* Nav */}
-              <div className="flex justify-between mt-8 pt-6 border-t border-border">
-                {stage > 0 ? (
-                  <Button variant="outline" onClick={prev}><ChevronLeft className="w-4 h-4" /> Back</Button>
-                ) : <div />}
-                <Button onClick={next} disabled={saving}>
-                  {saving ? "Saving..." : stage === 3 ? "Continue to Missions" : "Next"} <ChevronRight className="w-4 h-4" />
-                </Button>
+              <div>
+                <label className={labelClass}>Email Address</label>
+                <input className={inputClass} type="email" placeholder="john@example.com" value={form.email} onChange={(e) => update("email", e.target.value)} />
+              </div>
+              <div>
+                <label className={labelClass}>Phone Number</label>
+                <input className={inputClass} type="tel" placeholder="(404) 555-0123" value={form.phone} onChange={(e) => update("phone", e.target.value)} />
+              </div>
+              <div>
+                <label className={labelClass}>Age</label>
+                <input className={inputClass} type="number" placeholder="35" value={form.age} onChange={(e) => update("age", e.target.value)} />
+              </div>
+              <div>
+                <label className={labelClass}>Street Address</label>
+                <input className={inputClass} placeholder="123 Peachtree St" value={form.street} onChange={(e) => update("street", e.target.value)} />
+              </div>
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className={labelClass}>City</label>
+                  <input className={inputClass} placeholder="Atlanta" value={form.city} onChange={(e) => update("city", e.target.value)} />
+                </div>
+                <div>
+                  <label className={labelClass}>State</label>
+                  <select className={inputClass} value={form.state} onChange={(e) => update("state", e.target.value)}>
+                    {usStates.map((s) => <option key={s} value={s}>{s}</option>)}
+                  </select>
+                </div>
+              </div>
+              <div>
+                <label className={labelClass}>ZIP Code</label>
+                <input className={inputClass} placeholder="30301" maxLength={5} value={form.zip} onChange={(e) => update("zip", e.target.value)} />
               </div>
             </div>
-          </div>
+          )}
 
-          {/* AI Chat */}
-          <div className="lg:col-span-2">
-            <div className="lg:sticky lg:top-24">
-              <ComfortAIChat firstName={form.firstName} contextMessages={chatMessages} />
+          {stage === 1 && (
+            <div className="space-y-6">
+              <div>
+                <label className={labelClass}>System Age: {form.systemAge} years</label>
+                <input type="range" min={0} max={30} value={form.systemAge} onChange={(e) => update("systemAge", +e.target.value)}
+                  className="w-full h-2 rounded-full bg-border appearance-none cursor-pointer mt-2" style={{ accentColor: "hsl(181, 82%, 25%)" }} />
+                <div className="flex justify-between text-xs text-muted-foreground mt-1"><span>0 years</span><span>30 years</span></div>
+              </div>
+              <div>
+                <label className={labelClass}>Square Footage</label>
+                <select className={inputClass} value={form.sqft} onChange={(e) => update("sqft", e.target.value)}>
+                  <option value="">Select...</option>
+                  {squareFootageOptions.map((o) => <option key={o} value={o}>{o} sq ft</option>)}
+                </select>
+              </div>
+              <div>
+                <label className={labelClass}>Number of Systems</label>
+                <div className="flex gap-3">
+                  {["1", "2", "3+"].map((n) => (
+                    <button key={n} onClick={() => update("numSystems", n)}
+                      className={`flex-1 py-3.5 rounded-xl text-sm font-medium border transition-all ${
+                        form.numSystems === n ? "border-primary bg-primary/10 text-primary" : "border-border bg-surface text-muted-foreground hover:border-primary/30"
+                      }`}>{n}</button>
+                  ))}
+                </div>
+              </div>
+              <div>
+                <label className={labelClass}>Health conditions in home?</label>
+                <div className="flex gap-3">
+                  {[true, false].map((v) => (
+                    <button key={String(v)} onClick={() => update("healthConditions", v)}
+                      className={`flex-1 py-3.5 rounded-xl text-sm font-medium border transition-all ${
+                        form.healthConditions === v ? "border-primary bg-primary/10 text-primary" : "border-border bg-surface text-muted-foreground hover:border-primary/30"
+                      }`}>{v ? "Yes" : "No"}</button>
+                  ))}
+                </div>
+              </div>
+            </div>
+          )}
+
+          {stage === 2 && (
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              {comfortChallenges.map((c) => (
+                <button key={c} onClick={() => toggleChallenge(c)}
+                  className={`p-4 rounded-xl text-left text-sm font-medium border transition-all ${
+                    form.challenges.includes(c)
+                      ? "border-primary bg-primary/10 text-primary shadow-card"
+                      : "border-border bg-surface text-muted-foreground hover:border-primary/30"
+                  }`}>
+                  <span className="mr-2">{form.challenges.includes(c) ? "✅" : "⬜"}</span>
+                  {c}
+                </button>
+              ))}
+            </div>
+          )}
+
+          {stage === 3 && (
+            <div className="grid sm:grid-cols-3 gap-4">
+              {priorityCards.map((p) => (
+                <button key={p.id} onClick={() => update("priority", p.id)}
+                  className={`p-6 rounded-2xl text-center border-2 transition-all ${
+                    form.priority === p.id
+                      ? "border-primary bg-primary/5 shadow-card"
+                      : "border-border hover:border-primary/30"
+                  }`}>
+                  <div className="text-3xl mb-3">{p.emoji}</div>
+                  <h4 className="font-display font-bold text-foreground text-sm mb-1">{p.title}</h4>
+                  <p className="text-xs text-muted-foreground">{p.desc}</p>
+                </button>
+              ))}
+            </div>
+          )}
+        </motion.div>
+
+        {/* Comfort AI Chat Card */}
+        <motion.div
+          key={`chat-${stage}`}
+          initial="hidden"
+          animate="visible"
+          variants={fadeIn}
+          className="mt-6 rounded-2xl bg-primary/5 border border-primary/15 p-5"
+        >
+          <div className="flex gap-3 items-start">
+            <img
+              src={comfortAvatar}
+              alt="Comfort AI"
+              className="w-10 h-10 rounded-full object-cover border-2 border-primary/20 flex-shrink-0"
+            />
+            <div>
+              <p className="text-xs font-semibold text-primary mb-1">Comfort — Your AI Home Advisor</p>
+              <p className="text-sm text-foreground leading-relaxed">
+                {comfortMessages[stage]}
+              </p>
             </div>
           </div>
+        </motion.div>
+
+        {/* CTA Button */}
+        <div className="mt-8 flex flex-col gap-3">
+          <Button onClick={next} disabled={saving} variant="hero" size="xl" className="w-full">
+            {saving ? "Saving..." : stage === 3 ? "Continue to Missions" : `Continue to Step ${stage + 2}`}
+            <ChevronRight className="w-5 h-5" />
+          </Button>
+          {stage > 0 && (
+            <Button variant="ghost" onClick={prev} className="w-full text-muted-foreground">
+              <ChevronLeft className="w-4 h-4" /> Back to Step {stage}
+            </Button>
+          )}
         </div>
       </div>
     </Layout>
