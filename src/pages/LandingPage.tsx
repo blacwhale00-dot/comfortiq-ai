@@ -4,6 +4,7 @@ import Layout from "@/components/Layout";
 import { DollarSign, Users, FileText, ShieldCheck, Clock, Heart, Zap } from "lucide-react";
 import { motion } from "framer-motion";
 import heroPattern from "@/assets/hero-pattern.png";
+import HomeComfortCard from "@/components/HomeComfortCard";
 
 const fadeUp = {
   hidden: { opacity: 0, y: 30 },
@@ -69,7 +70,10 @@ export default function LandingPage() {
           <motion.p variants={fadeUp} className="mt-6 text-lg text-muted-foreground max-w-xl">
             Take our free 60-second assessment and discover how much you could save with smarter home comfort.
           </motion.p>
-          <motion.div variants={fadeUp} className="mt-10">
+          <motion.div variants={fadeUp} className="mt-10 w-full flex justify-center">
+            <HomeComfortCard />
+          </motion.div>
+          <motion.div variants={fadeUp} className="mt-8">
             <Button asChild variant="hero" size="xl">
               <Link to="/quiz">Take the Free 60-Second Assessment</Link>
             </Button>
