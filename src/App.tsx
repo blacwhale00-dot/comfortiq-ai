@@ -9,6 +9,7 @@ import MissionsPage from "./pages/MissionsPage.tsx";
 import EstimatePage from "./pages/EstimatePage.tsx";
 import EducationPage from "./pages/EducationPage.tsx";
 import BlogPage from "./pages/BlogPage.tsx";
+import PrivacyPage from "./pages/PrivacyPage.tsx";
 import NotFound from "./pages/NotFound.tsx";
 
 const queryClient = new QueryClient();
