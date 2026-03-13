@@ -1,8 +1,19 @@
 import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import Layout from "@/components/Layout";
-import { DollarSign, Users, FileText, ShieldCheck, Clock, Heart, Camera, Zap } from "lucide-react";
+import { DollarSign, Users, FileText, ShieldCheck, Clock, Heart, Zap } from "lucide-react";
+import { motion } from "framer-motion";
 import heroPattern from "@/assets/hero-pattern.png";
+
+const fadeUp = {
+  hidden: { opacity: 0, y: 30 },
+  visible: { opacity: 1, y: 0, transition: { duration: 0.6, ease: "easeOut" } },
+};
+
+const staggerContainer = {
+  hidden: {},
+  visible: { transition: { staggerChildren: 0.12 } },
+};
 
 const benefits = [
   { icon: DollarSign, title: "Save Money", desc: "Identify inefficiencies costing you hundreds per year" },
@@ -22,6 +33,18 @@ const steps = [
   { num: 3, title: "Get Your Personalized Estimate", desc: "Receive transparent pricing & book your free in-home consultation." },
 ];
 
+const Section = ({ children, className = "" }: { children: React.ReactNode; className?: string }) => (
+  <motion.section
+    initial="hidden"
+    whileInView="visible"
+    viewport={{ once: true, amount: 0.2 }}
+    variants={fadeUp}
+    className={className}
+  >
+    {children}
+  </motion.section>
+);
+
 export default function LandingPage() {
   return (
     <Layout>
@@ -30,65 +53,80 @@ export default function LandingPage() {
         <div className="absolute inset-0 opacity-10">
           <img src={heroPattern} alt="" className="w-full h-full object-cover" />
         </div>
-        <div className="container relative py-24 md:py-36 flex flex-col items-center text-center">
-          <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-primary/10 text-primary text-sm font-medium mb-6 animate-fade-in">
+        <motion.div
+          initial="hidden"
+          animate="visible"
+          variants={staggerContainer}
+          className="container relative py-24 md:py-36 flex flex-col items-center text-center"
+        >
+          <motion.div variants={fadeUp} className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-primary/10 text-primary text-sm font-medium mb-6">
             <span className="w-2 h-2 rounded-full bg-primary animate-pulse" />
             AI-Powered Home Comfort Assessment
-          </div>
-          <h1 className="text-4xl md:text-6xl font-display font-extrabold text-foreground leading-tight max-w-3xl animate-fade-in" style={{ animationDelay: "0.1s" }}>
+          </motion.div>
+          <motion.h1 variants={fadeUp} className="text-4xl md:text-6xl font-display font-extrabold text-foreground leading-tight max-w-3xl">
             Is Your HVAC System <span className="text-primary">Costing You</span> Too Much?
-          </h1>
-          <p className="mt-6 text-lg text-muted-foreground max-w-xl animate-fade-in" style={{ animationDelay: "0.2s" }}>
+          </motion.h1>
+          <motion.p variants={fadeUp} className="mt-6 text-lg text-muted-foreground max-w-xl">
             Take our free 60-second assessment and discover how much you could save with smarter home comfort.
-          </p>
-          <div className="mt-10 animate-fade-in" style={{ animationDelay: "0.3s" }}>
+          </motion.p>
+          <motion.div variants={fadeUp} className="mt-10">
             <Button asChild variant="hero" size="xl">
               <Link to="/quiz">Take the Free 60-Second Assessment</Link>
             </Button>
-          </div>
-
-          {/* Trust Bar */}
-          <div className="mt-12 flex flex-col sm:flex-row items-center gap-6 sm:gap-10 animate-fade-in" style={{ animationDelay: "0.4s" }}>
+          </motion.div>
+          <motion.div variants={fadeUp} className="mt-12 flex flex-col sm:flex-row items-center gap-6 sm:gap-10">
             {trustItems.map((item) => (
               <div key={item.text} className="flex items-center gap-2 text-muted-foreground text-sm">
                 <item.icon className="w-5 h-5 text-primary" />
                 <span>{item.text}</span>
               </div>
             ))}
-          </div>
-        </div>
+          </motion.div>
+        </motion.div>
       </section>
 
       {/* Benefits */}
-      <section className="py-20 bg-surface">
-        <div className="container">
+      <Section className="py-20 bg-surface">
+        <motion.div
+          initial="hidden"
+          whileInView="visible"
+          viewport={{ once: true, amount: 0.2 }}
+          variants={staggerContainer}
+          className="container"
+        >
           <div className="grid md:grid-cols-3 gap-8">
-            {benefits.map((b, i) => (
-              <div
+            {benefits.map((b) => (
+              <motion.div
                 key={b.title}
-                className="bg-background rounded-2xl p-8 shadow-card hover:shadow-card-hover transition-shadow duration-300 text-center animate-slide-up"
-                style={{ animationDelay: `${i * 0.1}s` }}
+                variants={fadeUp}
+                className="bg-background rounded-2xl p-8 shadow-card hover:shadow-card-hover transition-shadow duration-300 text-center"
               >
                 <div className="w-14 h-14 rounded-2xl gradient-teal flex items-center justify-center mx-auto mb-5">
                   <b.icon className="w-7 h-7 text-primary-foreground" />
                 </div>
                 <h3 className="font-display font-bold text-lg text-foreground mb-2">{b.title}</h3>
                 <p className="text-sm text-muted-foreground leading-relaxed">{b.desc}</p>
-              </div>
+              </motion.div>
             ))}
           </div>
-        </div>
-      </section>
+        </motion.div>
+      </Section>
 
       {/* How It Works */}
-      <section className="py-20">
-        <div className="container max-w-3xl">
-          <h2 className="text-2xl md:text-3xl font-display font-bold text-foreground text-center mb-12">
+      <Section className="py-20">
+        <motion.div
+          initial="hidden"
+          whileInView="visible"
+          viewport={{ once: true, amount: 0.2 }}
+          variants={staggerContainer}
+          className="container max-w-3xl"
+        >
+          <motion.h2 variants={fadeUp} className="text-2xl md:text-3xl font-display font-bold text-foreground text-center mb-12">
             How It Works
-          </h2>
+          </motion.h2>
           <div className="space-y-10">
-            {steps.map((s, i) => (
-              <div key={s.num} className="flex gap-5 items-start animate-fade-in" style={{ animationDelay: `${i * 0.15}s` }}>
+            {steps.map((s) => (
+              <motion.div key={s.num} variants={fadeUp} className="flex gap-5 items-start">
                 <div className="flex-shrink-0 w-10 h-10 rounded-full gradient-teal flex items-center justify-center text-primary-foreground font-display font-bold text-lg">
                   {s.num}
                 </div>
@@ -96,18 +134,24 @@ export default function LandingPage() {
                   <h3 className="font-display font-bold text-foreground text-lg">{s.title}</h3>
                   <p className="text-muted-foreground text-sm mt-1 leading-relaxed">{s.desc}</p>
                 </div>
-              </div>
+              </motion.div>
             ))}
           </div>
-        </div>
-      </section>
+        </motion.div>
+      </Section>
 
       {/* Savings Teaser */}
-      <section className="py-16 gradient-amber">
+      <Section className="py-16 gradient-amber">
         <div className="container text-center max-w-2xl">
-          <p className="text-5xl md:text-6xl font-display font-extrabold text-accent-foreground mb-4">
+          <motion.p
+            initial={{ opacity: 0, scale: 0.9 }}
+            whileInView={{ opacity: 1, scale: 1 }}
+            viewport={{ once: true }}
+            transition={{ duration: 0.5, ease: "easeOut" }}
+            className="text-5xl md:text-6xl font-display font-extrabold text-accent-foreground mb-4"
+          >
             Up to $900 in Discounts
-          </p>
+          </motion.p>
           <p className="text-accent-foreground/80 leading-relaxed">
             Upload photos of your outdoor unit, breaker panel, thermostat, and electric bill to unlock your full savings.
           </p>
@@ -117,20 +161,20 @@ export default function LandingPage() {
             </Button>
           </div>
         </div>
-      </section>
+      </Section>
 
       {/* Solar Bonus Callout */}
-      <section className="bg-primary">
+      <Section className="bg-primary">
         <div className="container py-5 flex flex-col sm:flex-row items-center justify-center gap-3 text-center sm:text-left">
           <Zap className="w-5 h-5 text-primary-foreground" />
           <p className="text-primary-foreground text-sm font-medium">
             Upload your electric bill and receive a <span className="font-bold">FREE Solar Savings Report</span> — see how to eliminate your electric bill entirely.
           </p>
         </div>
-      </section>
+      </Section>
 
       {/* Trust */}
-      <section className="py-20">
+      <Section className="py-20">
         <div className="container text-center max-w-2xl">
           <h2 className="text-2xl md:text-3xl font-display font-bold text-foreground mb-4">
             Trusted by Atlanta Homeowners
@@ -144,10 +188,10 @@ export default function LandingPage() {
             </Button>
           </div>
         </div>
-      </section>
+      </Section>
 
       {/* Bottom CTA */}
-      <section className="py-16 bg-surface">
+      <Section className="py-16 bg-surface">
         <div className="container text-center">
           <h2 className="text-2xl md:text-3xl font-display font-bold text-foreground mb-4">
             Ready to Take Control of Your Comfort?
@@ -159,7 +203,7 @@ export default function LandingPage() {
             <Link to="/quiz">Take the Free 60-Second Assessment</Link>
           </Button>
         </div>
-      </section>
+      </Section>
     </Layout>
   );
 }
