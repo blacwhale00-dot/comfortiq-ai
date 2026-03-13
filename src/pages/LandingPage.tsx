@@ -4,6 +4,7 @@ import Layout from "@/components/Layout";
 import { DollarSign, Users, FileText, ShieldCheck, Clock, Heart, Zap } from "lucide-react";
 import { motion } from "framer-motion";
 import heroPattern from "@/assets/hero-pattern.png";
+import HomeComfortCard from "@/components/HomeComfortCard";
 
 const fadeUp = {
   hidden: { opacity: 0, y: 30 },
