@@ -14,7 +14,78 @@ export type Database = {
   }
   public: {
     Tables: {
-      [_ in never]: never
+      quiz_sessions: {
+        Row: {
+          age: number | null
+          challenges: string[] | null
+          city: string | null
+          created_at: string
+          email: string | null
+          first_name: string | null
+          funnel_status: string | null
+          health_conditions: boolean | null
+          id: string
+          last_name: string | null
+          num_systems: string | null
+          phone: string | null
+          project_tier: string | null
+          solar_interest: boolean | null
+          square_footage: string | null
+          state: string | null
+          street_address: string | null
+          system_age: number | null
+          total_discount_earned: number | null
+          updated_at: string
+          zip_code: string | null
+        }
+        Insert: {
+          age?: number | null
+          challenges?: string[] | null
+          city?: string | null
+          created_at?: string
+          email?: string | null
+          first_name?: string | null
+          funnel_status?: string | null
+          health_conditions?: boolean | null
+          id?: string
+          last_name?: string | null
+          num_systems?: string | null
+          phone?: string | null
+          project_tier?: string | null
+          solar_interest?: boolean | null
+          square_footage?: string | null
+          state?: string | null
+          street_address?: string | null
+          system_age?: number | null
+          total_discount_earned?: number | null
+          updated_at?: string
+          zip_code?: string | null
+        }
+        Update: {
+          age?: number | null
+          challenges?: string[] | null
+          city?: string | null
+          created_at?: string
+          email?: string | null
+          first_name?: string | null
+          funnel_status?: string | null
+          health_conditions?: boolean | null
+          id?: string
+          last_name?: string | null
+          num_systems?: string | null
+          phone?: string | null
+          project_tier?: string | null
+          solar_interest?: boolean | null
+          square_footage?: string | null
+          state?: string | null
+          street_address?: string | null
+          system_age?: number | null
+          total_discount_earned?: number | null
+          updated_at?: string
+          zip_code?: string | null
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
