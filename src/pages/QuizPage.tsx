@@ -1,9 +1,10 @@
-import { useState } from "react";
+import { useState, useCallback } from "react";
 import Layout from "@/components/Layout";
 import ComfortAIChat from "@/components/ComfortAIChat";
 import { Button } from "@/components/ui/button";
 import { useNavigate } from "react-router-dom";
 import { ChevronRight, ChevronLeft } from "lucide-react";
+import { supabase } from "@/integrations/supabase/client";
 
 const stages = ["Personal Info", "Home Details", "Comfort Issues", "Priorities"];
 
@@ -28,6 +29,8 @@ const usStates = ["AL","AK","AZ","AR","CA","CO","CT","DE","FL","GA","HI","ID","I
 export default function QuizPage() {
   const navigate = useNavigate();
   const [stage, setStage] = useState(0);
+  const [sessionId, setSessionId] = useState<string | null>(null);
+  const [saving, setSaving] = useState(false);
   const [form, setForm] = useState({
     firstName: "", lastName: "", email: "", phone: "", age: "",
     street: "", city: "", state: "GA", zip: "",
@@ -43,9 +46,51 @@ export default function QuizPage() {
       challenges: f.challenges.includes(c) ? f.challenges.filter((x) => x !== c) : [...f.challenges, c],
     }));
 
-  const next = () => {
-    if (stage < 3) setStage(stage + 1);
-    else navigate("/missions");
+  const saveSession = useCallback(async (nextStage: number) => {
+    setSaving(true);
+    try {
+      const data = {
+        first_name: form.firstName || null,
+        last_name: form.lastName || null,
+        email: form.email || null,
+        phone: form.phone || null,
+        age: form.age ? parseInt(form.age) : null,
+        street_address: form.street || null,
+        city: form.city || null,
+        state: form.state,
+        zip_code: form.zip || null,
+        system_age: form.systemAge,
+        square_footage: form.sqft || null,
+        num_systems: form.numSystems,
+        health_conditions: form.healthConditions,
+        challenges: form.challenges,
+        project_tier: form.priority || null,
+        funnel_status: nextStage >= 4 ? "quiz_complete" : `stage_${nextStage}`,
+      };
+
+      if (sessionId) {
+        await supabase.from("quiz_sessions").update(data).eq("id", sessionId);
+      } else {
+        const { data: inserted } = await supabase.from("quiz_sessions").insert(data).select("id").single();
+        if (inserted) setSessionId(inserted.id);
+      }
+    } catch (err) {
+      console.error("Failed to save session:", err);
+    } finally {
+      setSaving(false);
+    }
+  }, [form, sessionId]);
+
+  const next = async () => {
+    if (stage < 3) {
+      await saveSession(stage + 1);
+      setStage(stage + 1);
+    } else {
+      await saveSession(4);
+      // Store session ID for missions page
+      if (sessionId) localStorage.setItem("comfortiq_session", sessionId);
+      navigate("/missions");
+    }
   };
   const prev = () => stage > 0 && setStage(stage - 1);
 
@@ -118,7 +163,7 @@ export default function QuizPage() {
                     <div>
                       <label className={labelClass}>System Age: {form.systemAge} years</label>
                       <input type="range" min={0} max={30} value={form.systemAge} onChange={(e) => update("systemAge", +e.target.value)}
-                        className="w-full h-2 rounded-full bg-border appearance-none cursor-pointer accent-primary mt-2" style={{ accentColor: "hsl(181, 82%, 25%)" }} />
+                        className="w-full h-2 rounded-full bg-border appearance-none cursor-pointer mt-2" style={{ accentColor: "hsl(181, 82%, 25%)" }} />
                       <div className="flex justify-between text-xs text-muted-foreground mt-1"><span>0 years</span><span>30 years</span></div>
                     </div>
                     <div>
@@ -194,8 +239,8 @@ export default function QuizPage() {
                 {stage > 0 ? (
                   <Button variant="outline" onClick={prev}><ChevronLeft className="w-4 h-4" /> Back</Button>
                 ) : <div />}
-                <Button onClick={next}>
-                  {stage === 3 ? "Continue to Missions" : "Next"} <ChevronRight className="w-4 h-4" />
+                <Button onClick={next} disabled={saving}>
+                  {saving ? "Saving..." : stage === 3 ? "Continue to Missions" : "Next"} <ChevronRight className="w-4 h-4" />
                 </Button>
               </div>
             </div>
