@@ -166,11 +166,15 @@ export default function VisualAuditPage() {
     }
   };
 
+  const isExpress = localStorage.getItem("comfortiq_express") === "true";
+
   const chatMessages = allComplete
     ? ["🎉 All uploads complete! You've unlocked the full $900 discount. Hit 'Generate ROI Report' to see your savings breakdown!"]
     : anyUploaded
       ? [`Great progress! ${completedCount}/4 uploaded. ${!uploads.bill?.uploaded ? "Don't forget the Electric Bill — it's worth $500 alone!" : "Keep going!"}`]
-      : ["Welcome to Level 2! Upload photos of your equipment and electric bill to unlock up to $900 in savings. Start with any card below."];
+      : isExpress
+        ? ["You've entered the Express Lane. Upload your photos and bill below for a prioritized Engineering Review."]
+        : ["Welcome to Level 2! Upload photos of your equipment and electric bill to unlock up to $900 in savings. Start with any card below."];
 
   return (
     <Layout>
@@ -203,7 +207,9 @@ export default function VisualAuditPage() {
             Visual Audit & ROI Report
           </h1>
           <p className="text-muted-foreground max-w-lg mx-auto">
-            Upload 4 photos to unlock your personalized savings analysis and $900 discount
+            {isExpress
+              ? "You've entered the Express Lane. Upload your photos and bill below for a prioritized Engineering Review."
+              : "Upload 4 photos to unlock your personalized savings analysis and $900 discount"}
           </p>
         </div>
 
