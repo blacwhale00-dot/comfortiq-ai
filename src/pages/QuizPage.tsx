@@ -160,7 +160,7 @@ export default function QuizPage() {
         <div className="container py-3">
           <div className="flex items-center justify-between mb-1.5">
             <p className="text-xs font-semibold tracking-wide uppercase text-muted-foreground">
-              {phase === "intro" ? "Welcome" : phase === "calculating" || phase === "results" ? "Complete" : `Question ${currentQ + 1} of ${totalQ}`}
+              {phase === "intro" ? "Welcome" : phase === "gate" ? "Almost there!" : phase === "calculating" || phase === "results" ? "Complete" : `Question ${currentQ + 1} of ${totalQ}`}
             </p>
             <p className="text-xs font-medium text-primary">{Math.round(progress)}%</p>
           </div>
