@@ -6,6 +6,7 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import Index from "./pages/Index.tsx";
 import QuizPage from "./pages/QuizPage.tsx";
 import MissionsPage from "./pages/MissionsPage.tsx";
+import VisualAuditPage from "./pages/VisualAuditPage.tsx";
 import EstimatePage from "./pages/EstimatePage.tsx";
 import EducationPage from "./pages/EducationPage.tsx";
 import BlogPage from "./pages/BlogPage.tsx";
