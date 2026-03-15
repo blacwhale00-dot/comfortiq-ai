@@ -65,6 +65,32 @@ export default function LandingPage() {
 
       <ExpressAuditGate open={expressOpen} onOpenChange={setExpressOpen} />
 
+      {/* Triage Split */}
+      <div className="container py-4 pb-8">
+        <div className="flex flex-col sm:flex-row gap-3 max-w-2xl mx-auto">
+          <button
+            onClick={() => setExpressOpen(true)}
+            className="flex-1 flex items-center gap-3 px-5 py-4 rounded-xl border border-border bg-background hover:border-destructive/40 hover:bg-destructive/5 transition-all duration-200 text-left group"
+          >
+            <span className="text-2xl shrink-0">🚨</span>
+            <div>
+              <p className="font-display font-bold text-sm text-foreground leading-snug">System Emergency?</p>
+              <p className="text-xs text-muted-foreground mt-0.5">90° Day / Family at home → Express Audit</p>
+            </div>
+          </button>
+          <Link
+            to="/quiz"
+            className="flex-1 flex items-center gap-3 px-5 py-4 rounded-xl border border-border bg-background hover:border-primary/40 hover:bg-primary/5 transition-all duration-200 text-left group"
+          >
+            <span className="text-2xl shrink-0">📉</span>
+            <div>
+              <p className="font-display font-bold text-sm text-foreground leading-snug">High Bills?</p>
+              <p className="text-xs text-muted-foreground mt-0.5">Proactive Planning → 60-Sec Quiz</p>
+            </div>
+          </Link>
+        </div>
+      </div>
+
       {/* Hero */}
       <section className="relative overflow-hidden">
         <div className="absolute inset-0 opacity-10">
