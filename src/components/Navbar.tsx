@@ -14,8 +14,8 @@ export default function Navbar() {
   const location = useLocation();
 
   return (
-    <nav className="sticky top-0 z-50 bg-background/80 backdrop-blur-lg border-b border-border pt-[env(safe-area-inset-top)]">
-      <div className="container flex items-center justify-between h-16">
+    <nav className="sticky top-0 z-50 bg-background/95 backdrop-blur-lg border-b border-border shadow-sm">
+      <div className="container flex items-center justify-between h-[68px]">
         <Link to="/" className="flex items-center gap-2">
           <div className="w-8 h-8 rounded-lg gradient-teal flex items-center justify-center">
             <span className="text-primary-foreground font-display font-bold text-sm">CQ</span>

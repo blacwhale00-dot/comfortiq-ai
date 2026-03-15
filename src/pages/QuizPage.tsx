@@ -156,7 +156,7 @@ export default function QuizPage() {
   return (
     <Layout>
       {/* Progress bar */}
-      <div className="bg-surface border-b border-border">
+      <div className="bg-surface border-b border-border mt-4">
         <div className="container py-3">
           <div className="flex items-center justify-between mb-1.5">
             <p className="text-xs font-semibold tracking-wide uppercase text-muted-foreground">

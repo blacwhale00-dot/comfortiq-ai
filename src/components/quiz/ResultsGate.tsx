@@ -27,7 +27,7 @@ export default function ResultsGate({ onSubmit, isSubmitting }: ResultsGateProps
       animate={{ opacity: 1, y: 0 }}
       exit={{ opacity: 0, y: -20 }}
       transition={{ duration: 0.5 }}
-      className="space-y-6"
+      className="space-y-6 flex flex-col justify-center min-h-[60vh]"
     >
       {/* Header card */}
       <div className="relative overflow-hidden rounded-2xl gradient-teal p-6 text-center">
