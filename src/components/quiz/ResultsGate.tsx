@@ -32,14 +32,20 @@ export default function ResultsGate({ onSubmit, isSubmitting }: ResultsGateProps
       {/* Header card */}
       <div className="relative overflow-hidden rounded-2xl gradient-teal p-6 text-center">
         <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_0%,rgba(255,255,255,0.15),transparent_60%)]" />
-        <Lock className="w-8 h-8 text-primary-foreground/80 mx-auto mb-2" />
-        <h2 className="text-xl md:text-2xl font-display font-extrabold text-primary-foreground leading-tight">
-          Unlock Your Readiness Score
-          <br />& $900 Discount
-        </h2>
-        <p className="text-sm text-primary-foreground/80 mt-2">
-          Your personalized profile is ready — enter your details to reveal it.
-        </p>
+        <div className="relative z-10">
+          <div className="inline-flex items-center justify-center w-14 h-14 rounded-full bg-primary-foreground/15 backdrop-blur-sm mb-3">
+            <Lock className="w-7 h-7 text-primary-foreground" />
+          </div>
+          <p className="text-xs font-semibold tracking-widest uppercase text-primary-foreground/70 mb-1">
+            Final Step
+          </p>
+          <h2 className="text-xl md:text-2xl font-display font-extrabold text-primary-foreground leading-tight">
+            Unlock My Results
+          </h2>
+          <p className="text-sm text-primary-foreground/80 mt-2 max-w-xs mx-auto">
+            Your diagnostic is complete. Enter your details to reveal your Readiness Score &amp; claim your <strong>$900 discount</strong>.
+          </p>
+        </div>
       </div>
 
       {/* Form */}
