@@ -27,6 +27,16 @@ export type Database = {
           id: string
           last_name: string | null
           num_systems: string | null
+          pain_bills: number | null
+          pain_confidence: number | null
+          pain_confusion: number | null
+          pain_emergencies: number | null
+          pain_financial: number | null
+          pain_health: number | null
+          pain_moisture: number | null
+          pain_system_age: number | null
+          pain_temperature: number | null
+          pain_trust: number | null
           phone: string | null
           project_tier: string | null
           solar_interest: boolean | null
@@ -50,6 +60,16 @@ export type Database = {
           id?: string
           last_name?: string | null
           num_systems?: string | null
+          pain_bills?: number | null
+          pain_confidence?: number | null
+          pain_confusion?: number | null
+          pain_emergencies?: number | null
+          pain_financial?: number | null
+          pain_health?: number | null
+          pain_moisture?: number | null
+          pain_system_age?: number | null
+          pain_temperature?: number | null
+          pain_trust?: number | null
           phone?: string | null
           project_tier?: string | null
           solar_interest?: boolean | null
@@ -73,6 +93,16 @@ export type Database = {
           id?: string
           last_name?: string | null
           num_systems?: string | null
+          pain_bills?: number | null
+          pain_confidence?: number | null
+          pain_confusion?: number | null
+          pain_emergencies?: number | null
+          pain_financial?: number | null
+          pain_health?: number | null
+          pain_moisture?: number | null
+          pain_system_age?: number | null
+          pain_temperature?: number | null
+          pain_trust?: number | null
           phone?: string | null
           project_tier?: string | null
           solar_interest?: boolean | null
