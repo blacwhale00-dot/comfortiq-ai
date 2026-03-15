@@ -30,6 +30,8 @@ export default function QuizPage() {
   const totalQ = quizQuestions.length;
   const progress = phase === "results" || phase === "calculating"
     ? 100
+    : phase === "gate"
+    ? 95
     : phase === "intro"
     ? 0
     : ((currentQ + (phase === "mirror" ? 1 : 0)) / totalQ) * 100;
