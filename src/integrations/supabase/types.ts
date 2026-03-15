@@ -39,6 +39,7 @@ export type Database = {
           pain_trust: number | null
           phone: string | null
           project_tier: string | null
+          roi_report: Json | null
           solar_interest: boolean | null
           square_footage: string | null
           state: string | null
@@ -46,6 +47,10 @@ export type Database = {
           system_age: number | null
           total_discount_earned: number | null
           updated_at: string
+          upload_bill: string | null
+          upload_breaker: string | null
+          upload_outdoor: string | null
+          upload_thermostat: string | null
           zip_code: string | null
         }
         Insert: {
@@ -72,6 +77,7 @@ export type Database = {
           pain_trust?: number | null
           phone?: string | null
           project_tier?: string | null
+          roi_report?: Json | null
           solar_interest?: boolean | null
           square_footage?: string | null
           state?: string | null
@@ -79,6 +85,10 @@ export type Database = {
           system_age?: number | null
           total_discount_earned?: number | null
           updated_at?: string
+          upload_bill?: string | null
+          upload_breaker?: string | null
+          upload_outdoor?: string | null
+          upload_thermostat?: string | null
           zip_code?: string | null
         }
         Update: {
@@ -105,6 +115,7 @@ export type Database = {
           pain_trust?: number | null
           phone?: string | null
           project_tier?: string | null
+          roi_report?: Json | null
           solar_interest?: boolean | null
           square_footage?: string | null
           state?: string | null
@@ -112,6 +123,10 @@ export type Database = {
           system_age?: number | null
           total_discount_earned?: number | null
           updated_at?: string
+          upload_bill?: string | null
+          upload_breaker?: string | null
+          upload_outdoor?: string | null
+          upload_thermostat?: string | null
           zip_code?: string | null
         }
         Relationships: []

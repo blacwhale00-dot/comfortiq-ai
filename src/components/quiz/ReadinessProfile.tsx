@@ -116,7 +116,7 @@ export default function ReadinessProfile({ profile }: ReadinessProfileProps) {
             variant="hero"
             size="xl"
             className="w-full"
-            onClick={() => navigate("/estimate")}
+            onClick={() => navigate("/audit")}
           >
             Continue to Level 2 (Takes 3 mins)
             <ArrowRight className="w-5 h-5" />
