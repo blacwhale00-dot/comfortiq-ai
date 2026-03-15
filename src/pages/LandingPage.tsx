@@ -107,7 +107,7 @@ export default function LandingPage() {
           variants={staggerContainer}
           className="container relative py-24 md:py-36 flex flex-col items-center text-center"
         >
-          <motion.div variants={fadeUp} className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-primary/10 text-primary text-sm font-medium mb-6">
+          <motion.div variants={fadeUp} className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-primary/10 text-primary text-sm font-medium mb-6 mt-5">
             <span className="w-2 h-2 rounded-full bg-primary animate-pulse" />
             AI-Powered Home Comfort Assessment
           </motion.div>
