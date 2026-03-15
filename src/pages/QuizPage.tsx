@@ -102,6 +102,55 @@ export default function QuizPage() {
     setAnswers((a) => ({ ...a, [q.id]: val }));
   };
 
+  const handleGateSubmit = async (data: { fullName: string; email: string; phone: string }) => {
+    setGateSubmitting(true);
+    const [firstName, ...lastParts] = data.fullName.split(" ");
+    const lastName = lastParts.join(" ");
+
+    try {
+      if (sessionId) {
+        await supabase.from("quiz_sessions").update({
+          first_name: firstName,
+          last_name: lastName || null,
+          email: data.email,
+          phone: data.phone,
+          funnel_status: "quiz_complete",
+        }).eq("id", sessionId);
+      } else {
+        const vars = deriveVariables(answers);
+        const insertData: Record<string, any> = {
+          first_name: firstName,
+          last_name: lastName || null,
+          email: data.email,
+          phone: data.phone,
+          pain_temperature: Number(answers.temperature) || null,
+          pain_bills: answers.bills === "high" ? 5 : answers.bills === "med" ? 3 : answers.bills === "low" ? 1 : null,
+          pain_system_age: answers.system_age === ">15" ? 5 : answers.system_age === "12-15" ? 4 : answers.system_age === "8-12" ? 3 : answers.system_age === "<8" ? 1 : null,
+          pain_emergencies: answers.emergencies === "true" ? 5 : answers.emergencies === "false" ? 1 : null,
+          pain_confusion: Number(answers.confusion) || null,
+          pain_health: answers.health === "true" ? 5 : answers.health === "false" ? 1 : null,
+          pain_trust: Number(answers.trust) || null,
+          pain_moisture: Number(answers.moisture) || null,
+          pain_financial: answers.financial === "high" ? 5 : answers.financial === "med" ? 3 : answers.financial === "low" ? 1 : null,
+          pain_confidence: Number(answers.confidence) || null,
+          funnel_status: "quiz_complete",
+        };
+        const { data: inserted } = await supabase.from("quiz_sessions").insert(insertData).select("id").single();
+        if (inserted) {
+          setSessionId(inserted.id);
+          localStorage.setItem("comfortiq_session", inserted.id);
+        }
+      }
+    } catch (err) {
+      console.error("Failed to save lead:", err);
+    }
+
+    if (sessionId) localStorage.setItem("comfortiq_session", sessionId);
+    setPhase("calculating");
+    setTimeout(() => setPhase("results"), 2500);
+    setGateSubmitting(false);
+  };
+
   const profile = phase === "results" ? calculateProfile(deriveVariables(answers), answers) : null;
 
   return (
