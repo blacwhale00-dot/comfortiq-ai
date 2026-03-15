@@ -1,6 +1,6 @@
 import Layout from "@/components/Layout";
 import { Button } from "@/components/ui/button";
-import { Check, Calendar } from "lucide-react";
+import { Check, Calendar, Info, DollarSign } from "lucide-react";
 
 const tiers = [
   {
