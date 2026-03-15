@@ -49,6 +49,13 @@ const Section = ({ children, className = "" }: { children: React.ReactNode; clas
 export default function LandingPage() {
   return (
     <Layout>
+      {/* Billboard */}
+      <div className="w-full gradient-amber py-4 px-4 text-center">
+        <p className="text-accent-foreground font-display font-extrabold text-base md:text-lg leading-snug">
+          ⚡ INSTANT HVAC REPLACEMENT QUOTES — Unlock Your $900 Credit in 60 Seconds
+        </p>
+      </div>
+
       {/* Hero */}
       <section className="relative overflow-hidden">
         <div className="absolute inset-0 opacity-10">
