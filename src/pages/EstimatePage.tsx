@@ -1,6 +1,6 @@
 import Layout from "@/components/Layout";
 import { Button } from "@/components/ui/button";
-import { Check, Calendar } from "lucide-react";
+import { Check, Calendar, Info, DollarSign } from "lucide-react";
 
 const tiers = [
   {
@@ -79,22 +79,48 @@ export default function EstimatePage() {
           ))}
         </div>
 
-        {/* Disclaimer */}
+        {/* Professional Engineering Disclaimer */}
         <div className="max-w-3xl mx-auto mb-10">
-          <div className="bg-surface rounded-2xl p-6 border border-border">
-            <p className="text-sm text-muted-foreground leading-relaxed">
-              <strong className="text-foreground">Note:</strong> This is a starting estimate. Final pricing depends on available rebates, in-home site inspection, and system sizing requirements. Your ComfortIQ advisor will provide a detailed, locked-in quote during your free in-home assessment.
-            </p>
+          <div className="bg-amber/10 border border-amber/30 rounded-2xl p-6">
+            <div className="flex items-start gap-3">
+              <div className="shrink-0 w-9 h-9 rounded-xl bg-amber/20 flex items-center justify-center mt-0.5">
+                <Info className="w-5 h-5 text-amber" />
+              </div>
+              <div className="space-y-3">
+                <h3 className="text-sm font-display font-bold text-foreground">
+                  Professional Engineering Disclaimer
+                </h3>
+                <p className="text-sm text-muted-foreground leading-relaxed">
+                  This rough estimate is based on your quiz responses and typical system sizing for your home profile. Final pricing may vary based on <strong className="text-foreground">ductwork modifications, plenum requirements, electrical upgrades, and code compliance</strong> — factors that can only be confirmed during an in-home engineering assessment. Our process goes far beyond a standard "box swap."
+                </p>
+                <div className="bg-amber/10 rounded-xl p-4 border border-amber/20">
+                  <p className="text-sm font-display font-semibold text-foreground flex items-center gap-2">
+                    <DollarSign className="w-4 h-4 text-amber shrink-0" />
+                    Manufacturer &amp; Utility Rebates Not Yet Applied
+                  </p>
+                  <p className="text-sm text-muted-foreground mt-1 leading-relaxed">
+                    You may qualify for <strong className="text-foreground">$500 – $3,200+</strong> in additional rebates and tax credits. These can only be confirmed after your in-home assessment — don't leave money on the table.
+                  </p>
+                </div>
+              </div>
+            </div>
           </div>
         </div>
 
-        {/* CTA */}
+        {/* Final Booking CTA */}
         <div className="text-center">
-          <Button variant="hero" size="xl">
-            <Calendar className="w-5 h-5" />
-            Book Your Free In-Home Assessment
+          <Button
+            variant="hero"
+            size="xl"
+            className="w-full max-w-lg animate-pulse hover:animate-none text-lg"
+            onClick={() => window.open("https://api.leadconnectorhq.com/widget/booking/YOUR_CALENDAR_ID", "_blank")}
+          >
+            <Calendar className="w-6 h-6" />
+            BOOK APPOINTMENT NOW
           </Button>
-          <p className="text-xs text-muted-foreground mt-3">No obligation • 30-minute visit • Same-week availability</p>
+          <p className="text-xs text-muted-foreground mt-3">
+            Free • No obligation • 15-minute technical verification • Same-week availability
+          </p>
         </div>
       </div>
     </Layout>
