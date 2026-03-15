@@ -8,6 +8,7 @@ import { motion } from "framer-motion";
 import comfortAvatar from "@/assets/comfort-avatar.png";
 import PainPointSlider from "@/components/quiz/PainPointSlider";
 import { painPoints } from "@/components/quiz/painPointConfig";
+import PainScoreSummary from "@/components/quiz/PainScoreSummary";
 
 const stageLabels = ["Your Home Profile", "Home Details", "Your Pain Points", "Priorities"];
 const squareFootageOptions = ["Under 1,000", "1,000–1,500", "1,500–2,000", "2,000–2,500", "2,500–3,000", "3,000–4,000", "4,000+"];
@@ -249,21 +250,27 @@ export default function QuizPage() {
             </div>
           )}
 
-          {/* Stage 3: Priorities */}
+          {/* Stage 3: Summary + Priorities */}
           {stage === 3 && (
-            <div className="grid sm:grid-cols-3 gap-4">
-              {priorityCards.map((p) => (
-                <button key={p.id} onClick={() => update("priority", p.id)}
-                  className={`p-6 rounded-2xl text-center border-2 transition-all ${
-                    form.priority === p.id
-                      ? "border-primary bg-primary/5 shadow-card"
-                      : "border-border hover:border-primary/30"
-                  }`}>
-                  <div className="text-3xl mb-3">{p.emoji}</div>
-                  <h4 className="font-display font-bold text-foreground text-sm mb-1">{p.title}</h4>
-                  <p className="text-xs text-muted-foreground">{p.desc}</p>
-                </button>
-              ))}
+            <div className="space-y-6">
+              <PainScoreSummary scores={painScores} />
+              <div>
+                <p className="text-sm font-medium text-foreground mb-3">Now, what matters most to you?</p>
+                <div className="grid sm:grid-cols-3 gap-4">
+                  {priorityCards.map((p) => (
+                    <button key={p.id} onClick={() => update("priority", p.id)}
+                      className={`p-6 rounded-2xl text-center border-2 transition-all ${
+                        form.priority === p.id
+                          ? "border-primary bg-primary/5 shadow-card"
+                          : "border-border hover:border-primary/30"
+                      }`}>
+                      <div className="text-3xl mb-3">{p.emoji}</div>
+                      <h4 className="font-display font-bold text-foreground text-sm mb-1">{p.title}</h4>
+                      <p className="text-xs text-muted-foreground">{p.desc}</p>
+                    </button>
+                  ))}
+                </div>
+              </div>
             </div>
           )}
         </motion.div>
