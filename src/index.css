@@ -81,3 +81,12 @@
     background: linear-gradient(135deg, hsl(29, 88%, 62%), hsl(29, 88%, 72%));
   }
 }
+
+@keyframes urgency-pulse {
+  0%, 100% {
+    box-shadow: 0 0 0 0 hsla(0, 84%, 60%, 0);
+  }
+  50% {
+    box-shadow: 0 0 0 4px hsla(0, 84%, 60%, 0.12);
+  }
+}

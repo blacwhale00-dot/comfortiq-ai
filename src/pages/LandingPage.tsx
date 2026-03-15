@@ -66,11 +66,16 @@ export default function LandingPage() {
       <ExpressAuditGate open={expressOpen} onOpenChange={setExpressOpen} />
 
       {/* Triage Split */}
-      <div className="container py-4 pb-8">
+      <motion.div
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.6, ease: "easeOut", delay: 0.2 }}
+        className="container py-4 pb-8"
+      >
         <div className="flex flex-col sm:flex-row gap-3 max-w-2xl mx-auto">
           <button
             onClick={() => setExpressOpen(true)}
-            className="flex-1 flex items-center gap-3 px-5 py-4 rounded-xl border border-border bg-background hover:border-destructive/40 hover:bg-destructive/5 transition-all duration-200 text-left group"
+            className="flex-1 flex items-center gap-3 px-5 py-4 rounded-xl border border-border bg-background hover:border-destructive/40 hover:bg-destructive/5 text-left group transition-all duration-200 ease-out hover:-translate-y-1 hover:shadow-card-hover animate-[urgency-pulse_3s_ease-in-out_infinite]"
           >
             <span className="text-2xl shrink-0">🚨</span>
             <div>
@@ -80,7 +85,7 @@ export default function LandingPage() {
           </button>
           <Link
             to="/quiz"
-            className="flex-1 flex items-center gap-3 px-5 py-4 rounded-xl border border-border bg-background hover:border-primary/40 hover:bg-primary/5 transition-all duration-200 text-left group"
+            className="flex-1 flex items-center gap-3 px-5 py-4 rounded-xl border border-border bg-background hover:border-primary/40 hover:bg-primary/5 text-left group transition-all duration-200 ease-out hover:-translate-y-1 hover:shadow-card-hover"
           >
             <span className="text-2xl shrink-0">📉</span>
             <div>
@@ -89,7 +94,7 @@ export default function LandingPage() {
             </div>
           </Link>
         </div>
-      </div>
+      </motion.div>
 
       {/* Hero */}
       <section className="relative overflow-hidden">
