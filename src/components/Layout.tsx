@@ -4,9 +4,9 @@ import Navbar from "./Navbar";
 
 export default function Layout({ children }: { children: ReactNode }) {
   return (
-    <div className="min-h-screen flex flex-col" style={{ paddingTop: 'calc(env(safe-area-inset-top, 20px) + 10px)' }}>
+    <div className="min-h-screen flex flex-col" style={{ paddingTop: 'calc(env(safe-area-inset-top, 24px) + 20px)' }}>
       <Navbar />
-      <main className="flex-1">{children}</main>
+      <main className="flex-1 mt-6">{children}</main>
       <footer className="border-t border-border py-10 bg-surface">
         <div className="container flex flex-col md:flex-row items-center justify-between gap-4 text-sm text-muted-foreground">
           <p>© 2026 ComfortIQ.AI — Smarter Home Comfort Starts Here</p>
