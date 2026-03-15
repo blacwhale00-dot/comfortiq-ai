@@ -4,7 +4,7 @@ import Navbar from "./Navbar";
 
 export default function Layout({ children }: { children: ReactNode }) {
   return (
-    <div className="min-h-screen flex flex-col" style={{ paddingTop: 'env(safe-area-inset-top, 20px)' }}>
+    <div className="min-h-screen flex flex-col" style={{ paddingTop: 'calc(env(safe-area-inset-top, 20px) + 10px)' }}>
       <Navbar />
       <main className="flex-1">{children}</main>
       <footer className="border-t border-border py-10 bg-surface">
