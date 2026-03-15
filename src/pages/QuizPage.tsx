@@ -85,12 +85,8 @@ export default function QuizPage() {
           setCurrentQ((c) => c + 1);
           setPhase("question");
         } else {
-          // Last question → calculating
-          setPhase("calculating");
-          saveSession(true).then(() => {
-            if (sessionId) localStorage.setItem("comfortiq_session", sessionId);
-          });
-          setTimeout(() => setPhase("results"), 2500);
+          // Last question → gate (lead capture)
+          setPhase("gate");
         }
       }, 2500);
       return () => clearTimeout(timer);
