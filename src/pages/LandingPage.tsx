@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import Layout from "@/components/Layout";
@@ -5,6 +6,7 @@ import { DollarSign, Users, FileText, ShieldCheck, Clock, Heart, Zap } from "luc
 import { motion } from "framer-motion";
 import heroPattern from "@/assets/hero-pattern.png";
 import HomeComfortCard from "@/components/HomeComfortCard";
+import ExpressAuditGate from "@/components/ExpressAuditGate";
 
 const fadeUp = {
   hidden: { opacity: 0, y: 30 },
