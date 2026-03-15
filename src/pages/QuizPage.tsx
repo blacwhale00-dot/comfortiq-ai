@@ -24,6 +24,7 @@ export default function QuizPage() {
   });
   const [sessionId, setSessionId] = useState<string | null>(null);
   const [mirrorText, setMirrorText] = useState("");
+  const [gateSubmitting, setGateSubmitting] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
 
   const totalQ = quizQuestions.length;
