@@ -7,8 +7,9 @@ import { quizQuestions, getMirrorResponse, deriveVariables, calculateProfile } f
 import ConciergeQuestion from "@/components/quiz/ConciergeQuestion";
 import ConciergeMessage from "@/components/quiz/ConciergeMessage";
 import ReadinessProfile from "@/components/quiz/ReadinessProfile";
+import ResultsGate from "@/components/quiz/ResultsGate";
 
-type Phase = "intro" | "question" | "mirror" | "calculating" | "results";
+type Phase = "intro" | "question" | "mirror" | "gate" | "calculating" | "results";
 
 export default function QuizPage() {
   const navigate = useNavigate();
