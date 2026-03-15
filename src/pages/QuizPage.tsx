@@ -232,6 +232,11 @@ export default function QuizPage() {
             </motion.div>
           )}
 
+          {/* Results Gate */}
+          {phase === "gate" && (
+            <ResultsGate onSubmit={handleGateSubmit} isSubmitting={gateSubmitting} />
+          )}
+
           {/* Calculating */}
           {phase === "calculating" && (
             <motion.div
