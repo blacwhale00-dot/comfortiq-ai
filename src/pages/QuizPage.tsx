@@ -8,6 +8,7 @@ import { motion } from "framer-motion";
 import comfortAvatar from "@/assets/comfort-avatar.png";
 import PainPointSlider from "@/components/quiz/PainPointSlider";
 import { painPoints } from "@/components/quiz/painPointConfig";
+import PainScoreSummary from "@/components/quiz/PainScoreSummary";
 
 const stageLabels = ["Your Home Profile", "Home Details", "Your Pain Points", "Priorities"];
 const squareFootageOptions = ["Under 1,000", "1,000–1,500", "1,500–2,000", "2,000–2,500", "2,500–3,000", "3,000–4,000", "4,000+"];
