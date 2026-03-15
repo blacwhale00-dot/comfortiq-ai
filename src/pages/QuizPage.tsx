@@ -6,10 +6,11 @@ import { ChevronRight, ChevronLeft } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { motion } from "framer-motion";
 import comfortAvatar from "@/assets/comfort-avatar.png";
+import PainPointSlider from "@/components/quiz/PainPointSlider";
+import { painPoints } from "@/components/quiz/painPointConfig";
 
-const stageLabels = ["Your Home Profile", "Home Details", "Comfort Issues", "Priorities"];
+const stageLabels = ["Your Home Profile", "Home Details", "Your Pain Points", "Priorities"];
 const squareFootageOptions = ["Under 1,000", "1,000–1,500", "1,500–2,000", "2,000–2,500", "2,500–3,000", "3,000–4,000", "4,000+"];
-const comfortChallenges = ["High Energy Bills", "Uneven Temperatures", "Poor Air Quality", "Too Noisy", "Unreliable System"];
 const priorityCards = [
   { id: "budget", title: "Budget Focused", desc: "Get reliable comfort at the best price", emoji: "💰" },
   { id: "efficiency", title: "Efficiency & Value", desc: "Balance performance with long-term savings", emoji: "⚡" },
@@ -20,7 +21,7 @@ const usStates = ["AL","AK","AZ","AR","CA","CO","CT","DE","FL","GA","HI","ID","I
 const comfortMessages = [
   "Hi! I'm Comfort 👋 — your AI home advisor, trained by a 15-year HVAC expert. Fill in your details above and I'll guide you every step of the way!",
   "Great progress! Now tell me about your home — this helps me understand your comfort needs and find the right system.",
-  "What comfort challenges are you experiencing? Select all that apply — the more I know, the better I can help!",
+  "These questions help me understand your biggest frustrations. Be honest — the more I know, the better I can help!",
   "Almost done! What matters most to you? This helps me tailor your personalized estimate.",
 ];
 
@@ -33,6 +34,8 @@ const inputClass =
   "w-full px-4 py-3.5 rounded-xl bg-surface border border-border text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary/40 transition-all";
 const labelClass = "text-sm font-medium text-foreground mb-1.5 block";
 
+type PainScores = Record<string, number>;
+
 export default function QuizPage() {
   const navigate = useNavigate();
   const [stage, setStage] = useState(0);
@@ -42,21 +45,19 @@ export default function QuizPage() {
     firstName: "", lastName: "", email: "", phone: "", age: "",
     street: "", city: "", state: "GA", zip: "",
     systemAge: 10, sqft: "", numSystems: "1", healthConditions: false,
-    challenges: [] as string[],
     priority: "",
   });
+  const [painScores, setPainScores] = useState<PainScores>(
+    Object.fromEntries(painPoints.map((p) => [p.key, 3]))
+  );
 
   const update = (field: string, value: any) => setForm((f) => ({ ...f, [field]: value }));
-  const toggleChallenge = (c: string) =>
-    setForm((f) => ({
-      ...f,
-      challenges: f.challenges.includes(c) ? f.challenges.filter((x) => x !== c) : [...f.challenges, c],
-    }));
+  const updatePain = (key: string, val: number) => setPainScores((s) => ({ ...s, [key]: val }));
 
   const saveSession = useCallback(async (nextStage: number) => {
     setSaving(true);
     try {
-      const data = {
+      const data: Record<string, any> = {
         first_name: form.firstName || null,
         last_name: form.lastName || null,
         email: form.email || null,
@@ -70,9 +71,10 @@ export default function QuizPage() {
         square_footage: form.sqft || null,
         num_systems: form.numSystems,
         health_conditions: form.healthConditions,
-        challenges: form.challenges,
         project_tier: form.priority || null,
         funnel_status: nextStage >= 4 ? "quiz_complete" : `stage_${nextStage}`,
+        // Pain point scores
+        ...painScores,
       };
       if (sessionId) {
         await supabase.from("quiz_sessions").update(data).eq("id", sessionId);
@@ -85,7 +87,7 @@ export default function QuizPage() {
     } finally {
       setSaving(false);
     }
-  }, [form, sessionId]);
+  }, [form, painScores, sessionId]);
 
   const next = async () => {
     if (stage < 3) {
@@ -122,7 +124,6 @@ export default function QuizPage() {
       </div>
 
       <div className="container py-8 max-w-2xl">
-        {/* Title */}
         <motion.h1
           key={`title-${stage}`}
           initial="hidden"
@@ -133,7 +134,6 @@ export default function QuizPage() {
           Step {stage + 1}: {stageLabels[stage]}
         </motion.h1>
 
-        {/* Form card */}
         <motion.div
           key={`form-${stage}`}
           initial="hidden"
@@ -141,6 +141,7 @@ export default function QuizPage() {
           variants={fadeIn}
           className="bg-background rounded-2xl shadow-card p-6 md:p-8"
         >
+          {/* Stage 0: Profile */}
           {stage === 0 && (
             <div className="space-y-5">
               <div className="grid grid-cols-2 gap-4">
@@ -188,6 +189,7 @@ export default function QuizPage() {
             </div>
           )}
 
+          {/* Stage 1: Home Details */}
           {stage === 1 && (
             <div className="space-y-6">
               <div>
@@ -228,22 +230,26 @@ export default function QuizPage() {
             </div>
           )}
 
+          {/* Stage 2: Pain Points */}
           {stage === 2 && (
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-              {comfortChallenges.map((c) => (
-                <button key={c} onClick={() => toggleChallenge(c)}
-                  className={`p-4 rounded-xl text-left text-sm font-medium border transition-all ${
-                    form.challenges.includes(c)
-                      ? "border-primary bg-primary/10 text-primary shadow-card"
-                      : "border-border bg-surface text-muted-foreground hover:border-primary/30"
-                  }`}>
-                  <span className="mr-2">{form.challenges.includes(c) ? "✅" : "⬜"}</span>
-                  {c}
-                </button>
+            <div className="space-y-4">
+              <p className="text-sm text-muted-foreground mb-2">
+                Rate each on a scale of 1–5. Be honest — this helps us prioritize what matters most.
+              </p>
+              {painPoints.map((pp, i) => (
+                <PainPointSlider
+                  key={pp.key}
+                  question={pp.question}
+                  labels={pp.labels}
+                  value={painScores[pp.key]}
+                  onChange={(val) => updatePain(pp.key, val)}
+                  index={i}
+                />
               ))}
             </div>
           )}
 
+          {/* Stage 3: Priorities */}
           {stage === 3 && (
             <div className="grid sm:grid-cols-3 gap-4">
               {priorityCards.map((p) => (
