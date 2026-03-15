@@ -207,7 +207,9 @@ export default function VisualAuditPage() {
             Visual Audit & ROI Report
           </h1>
           <p className="text-muted-foreground max-w-lg mx-auto">
-            Upload 4 photos to unlock your personalized savings analysis and $900 discount
+            {isExpress
+              ? "You've entered the Express Lane. Upload your photos and bill below for a prioritized Engineering Review."
+              : "Upload 4 photos to unlock your personalized savings analysis and $900 discount"}
           </p>
         </div>
 

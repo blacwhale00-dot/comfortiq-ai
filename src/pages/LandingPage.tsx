@@ -49,14 +49,21 @@ const Section = ({ children, className = "" }: { children: React.ReactNode; clas
 );
 
 export default function LandingPage() {
+  const [expressOpen, setExpressOpen] = useState(false);
+
   return (
     <Layout>
-      {/* Billboard */}
-      <div className="w-full gradient-amber py-4 px-4 text-center">
+      {/* Billboard — Express Audit Trigger */}
+      <button
+        onClick={() => setExpressOpen(true)}
+        className="w-full gradient-amber py-4 px-4 text-center cursor-pointer hover:brightness-105 transition-all duration-200"
+      >
         <p className="text-accent-foreground font-display font-extrabold text-base md:text-lg leading-snug">
           ⚡ INSTANT HVAC REPLACEMENT QUOTES — Unlock Your $900 Credit in 60 Seconds
         </p>
-      </div>
+      </button>
+
+      <ExpressAuditGate open={expressOpen} onOpenChange={setExpressOpen} />
 
       {/* Hero */}
       <section className="relative overflow-hidden">
