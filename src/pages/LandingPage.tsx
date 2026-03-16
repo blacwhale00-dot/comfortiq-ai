@@ -7,6 +7,7 @@ import { motion } from "framer-motion";
 import heroPattern from "@/assets/hero-pattern.png";
 import HomeComfortCard from "@/components/HomeComfortCard";
 import ExpressAuditGate from "@/components/ExpressAuditGate";
+import ExpertBillboard from "@/components/ExpertBillboard";
 
 const fadeUp = {
   hidden: { opacity: 0, y: 30 },
