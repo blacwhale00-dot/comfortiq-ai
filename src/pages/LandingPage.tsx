@@ -97,6 +97,9 @@ export default function LandingPage() {
         </div>
       </motion.div>
 
+      {/* Expert Billboard */}
+      <ExpertBillboard />
+
       {/* Hero */}
       <section className="relative overflow-hidden">
         <div className="absolute inset-0 opacity-10">
