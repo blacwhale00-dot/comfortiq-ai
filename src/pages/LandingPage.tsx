@@ -7,6 +7,7 @@ import { motion } from "framer-motion";
 import heroPattern from "@/assets/hero-pattern.png";
 import HomeComfortCard from "@/components/HomeComfortCard";
 import ExpressAuditGate from "@/components/ExpressAuditGate";
+import ExpertBillboard from "@/components/ExpertBillboard";
 
 const fadeUp = {
   hidden: { opacity: 0, y: 30 },
@@ -95,6 +96,9 @@ export default function LandingPage() {
           </Link>
         </div>
       </motion.div>
+
+      {/* Expert Billboard */}
+      <ExpertBillboard />
 
       {/* Hero */}
       <section className="relative overflow-hidden">
