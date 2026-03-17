@@ -28,20 +28,17 @@ export default function ExpertBillboard() {
         className="container py-6"
       >
         <div className="max-w-2xl mx-auto bg-background rounded-2xl border border-border shadow-card overflow-hidden">
-          <div className="flex flex-col sm:flex-row items-center gap-6 p-6 sm:p-8">
-            {/* Left — Avatar */}
-            <div className="shrink-0">
-              <div className="w-28 h-28 sm:w-32 sm:h-32 rounded-full overflow-hidden border-4 border-primary/20 shadow-elevated bg-surface">
-                <img
-                  src={willMacon}
-                  alt="Will Macon — Metro Atlanta HVAC Architect"
-                  className="w-full h-full object-cover object-top"
-                />
-              </div>
-            </div>
+          {/* Banner Image */}
+          <div className="w-full h-[200px] overflow-hidden">
+            <img
+              src={willMacon}
+              alt="Will Macon — Metro Atlanta HVAC Architect"
+              className="w-full h-full object-cover object-center"
+            />
+          </div>
 
-            {/* Right — Content */}
-            <div className="text-center sm:text-left flex-1 min-w-0">
+          <div className="p-6 sm:p-8">
+            <div className="text-center sm:text-left">
               <h2 className="font-display font-extrabold text-lg text-foreground leading-snug">
                 Meet Will Macon — Your Metro Atlanta HVAC Architect
               </h2>
