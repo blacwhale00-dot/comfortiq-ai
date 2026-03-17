@@ -73,7 +73,6 @@ export default function ExpertBillboard() {
                 <ArrowRight className="w-4 h-4 transition-transform duration-200 group-hover:translate-x-0.5" />
               </button>
             </div>
-            </div>
           </div>
         </div>
       </motion.div>
