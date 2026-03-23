@@ -144,7 +144,7 @@ export default function MissionsPage() {
           {/* AI Chat */}
           <div className="lg:col-span-2">
             <div className="lg:sticky lg:top-24">
-              <ComfortAIChat contextMessages={chatMessages} />
+              <ComfortAIChat />
             </div>
           </div>
         </div>
