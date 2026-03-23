@@ -6,7 +6,6 @@
 
 import { useState, useRef, useEffect } from "react";
 import { Send, Upload, Phone, Calendar } from "lucide-react";
-import comfortAvatar from "@/assets/comfort-avatar.png";
 import {
   generateComfortResponse,
   buildTierProfile,
@@ -133,11 +132,9 @@ export default function ComfortAIChat({
     <div className="flex flex-col h-full bg-surface rounded-2xl border border-border overflow-hidden shadow-elevated">
       {/* ── Header ── */}
       <div className="flex items-center gap-3 p-4 border-b border-border bg-gradient-to-r from-[#0D9488] to-[#0F766E]">
-        <img
-          src={comfortAvatar}
-          alt="Comfort AI"
-          className="w-10 h-10 rounded-full object-cover border-2 border-white/30"
-        />
+        <div className="w-10 h-10 rounded-full bg-teal-600 flex items-center justify-center text-white font-bold text-lg border-2 border-white/30">
+          C
+        </div>
         <div>
           <p className="font-display font-bold text-sm text-white">Comfort</p>
           <p className="text-xs text-white/70">Your AI Home Advisor</p>
@@ -199,11 +196,9 @@ export default function ComfortAIChat({
         {messages.map((m, i) => (
           <div key={i} className={`flex ${m.role === "user" ? "justify-end" : "justify-start"}`}>
             {m.role === "comfort" && (
-              <img
-                src={comfortAvatar}
-                alt="Comfort"
-                className="w-7 h-7 rounded-full object-cover border border-[#0D9488]/20 mt-1 mr-2 shrink-0"
-              />
+              <div className="w-7 h-7 rounded-full bg-teal-600 flex items-center justify-center text-white font-bold text-xs mt-1 mr-2 shrink-0">
+                C
+              </div>
             )}
             <div
               className={`max-w-[82%] px-4 py-3 rounded-2xl text-sm leading-relaxed ${
@@ -220,11 +215,9 @@ export default function ComfortAIChat({
         {/* Typing indicator */}
         {isTyping && (
           <div className="flex items-start gap-2">
-            <img
-              src={comfortAvatar}
-              alt="Comfort typing"
-              className="w-7 h-7 rounded-full object-cover border border-[#0D9488]/20 mt-1 mr-2 shrink-0"
-            />
+            <div className="w-7 h-7 rounded-full bg-teal-600 flex items-center justify-center text-white font-bold text-xs mt-1 mr-2 shrink-0">
+              C
+            </div>
             <div className="bg-[#0D9488]/8 border border-[#0D9488]/15 px-4 py-3 rounded-2xl rounded-bl-md">
               <div className="flex gap-1">
                 <span className="w-1.5 h-1.5 rounded-full bg-[#0D9488]/40 animate-bounce" style={{ animationDelay: "0ms" }} />
