@@ -79,7 +79,7 @@ export default function ExpertBillboard() {
 
       {/* Bio Modal */}
       <Dialog open={bioOpen} onOpenChange={setBioOpen}>
-        <DialogContent className="max-w-lg">
+        <DialogContent className="max-w-lg mx-4 sm:mx-auto">
           <DialogHeader>
             <DialogTitle className="font-display text-xl">
               Why I Built ComfortIQ
