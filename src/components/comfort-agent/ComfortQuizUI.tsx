@@ -165,7 +165,7 @@ export default function ComfortQuizUI() {
         <div className="max-w-md w-full">
           <div className={`rounded-3xl ${tierConfig.bg} border-2 p-6 mb-4`}>
             <div className="flex items-center gap-3 mb-3">
-              <span className="text-3xl">{"hot":"0001F4E5","warm":"26A1","cool":"2705","cold":"0001F33F"}[tier]</span>
+              <span className="text-3xl">{tier === "hot" ? "🔥" : tier === "warm" ? "⚡" : tier === "cool" ? "✅" : "🌿"}</span>
               <div>
                 <p className={`text-sm font-semibold ${tierConfig.text}`}>{tierConfig.label}</p>
                 <p className="text-xs text-slate-500 mt-0.5">Readiness Score: {score}/100</p>
