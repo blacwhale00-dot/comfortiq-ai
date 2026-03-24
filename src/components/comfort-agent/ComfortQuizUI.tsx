@@ -165,7 +165,7 @@ export default function ComfortQuizUI() {
         <div className="max-w-md w-full">
           <div className={`rounded-3xl ${tierConfig.bg} border-2 p-6 mb-4`}>
             <div className="flex items-center gap-3 mb-3">
-              <span className="text-3xl">{tierConfig.emoji}</span>
+              <span className="text-3xl">{"hot":"0001F4E5","warm":"26A1","cool":"2705","cold":"0001F33F"}[tier]</span>
               <div>
                 <p className={`text-sm font-semibold ${tierConfig.text}`}>{tierConfig.label}</p>
                 <p className="text-xs text-slate-500 mt-0.5">Readiness Score: {score}/100</p>
@@ -274,7 +274,7 @@ export default function ComfortQuizUI() {
           {step.type === "photo" && (
             <div className="text-center py-8">
               <div className="w-20 h-20 rounded-2xl bg-teal-50 border-2 border-dashed border-teal-300 flex items-center justify-center mx-auto mb-4">
-                <span className="text-4xl">📸</span>
+                <span className="text-4xl">PHOTO</span>
               </div>
               <p className="text-slate-600 text-sm mb-4">Tap to upload or take a photo</p>
               <button className="px-6 py-2.5 rounded-xl bg-teal-600 text-white text-sm font-semibold hover:bg-teal-700 transition-colors">
