@@ -122,7 +122,7 @@ export default function LandingPage() {
             Take our free 60-second assessment and discover how much you could save with smarter home comfort.
           </motion.p>
           <motion.div variants={fadeUp} className="mt-10 w-full flex flex-col items-center gap-6">
-            <img src="/assets/comfortiq-logo.png" alt="ComfortIQ.AI" className="h-16 w-auto" />
+            <img src="/assets/comfortiq-logo.png" alt="ComfortIQ.AI" className="h-24 w-auto" />
             <HomeComfortCard />
           </motion.div>
           <motion.div variants={fadeUp} className="mt-8">

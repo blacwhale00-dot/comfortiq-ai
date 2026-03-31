@@ -17,7 +17,7 @@ export default function Navbar() {
     <nav className="sticky top-0 z-50 bg-background/95 backdrop-blur-lg border-b border-border shadow-sm pt-3 pb-2.5 md:py-0">
       <div className="container flex items-center justify-between h-[68px]">
         <Link to="/" className="flex items-center gap-2">
-          <img src="/assets/comfortiq-logo.png" alt="ComfortIQ.AI" className="h-10 w-auto" />
+          <img src="/assets/comfortiq-logo.png" alt="ComfortIQ.AI" className="h-12 w-auto" />
           <span className="font-display font-bold text-lg text-foreground">
             ComfortIQ<span className="text-primary">.AI</span>
           </span>
