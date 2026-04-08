@@ -2,6 +2,7 @@ import { useState, useCallback, useEffect, useRef } from "react";
 import Layout from "@/components/Layout";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
+import type { TablesInsert, TablesUpdate } from "@/integrations/supabase/types";
 import { AnimatePresence, motion } from "framer-motion";
 import { quizQuestions, getMirrorResponse, deriveVariables, calculateProfile } from "@/components/quiz/conciergeConfig";
 import ConciergeQuestion from "@/components/quiz/ConciergeQuestion";
@@ -39,7 +40,7 @@ export default function QuizPage() {
   // Save to DB
   const saveSession = useCallback(async (final = false) => {
     const vars = deriveVariables(answers);
-    const data: Record<string, any> = {
+    const data: TablesUpdate<"quiz_sessions"> = {
       pain_temperature: Number(answers.temperature) || null,
       pain_bills: answers.bills === "high" ? 5 : answers.bills === "med" ? 3 : answers.bills === "low" ? 1 : null,
       pain_system_age: answers.system_age === ">15" ? 5 : answers.system_age === "12-15" ? 4 : answers.system_age === "8-12" ? 3 : answers.system_age === "<8" ? 1 : null,
@@ -118,7 +119,7 @@ export default function QuizPage() {
         }).eq("id", sessionId);
       } else {
         const vars = deriveVariables(answers);
-        const insertData: Record<string, any> = {
+        const insertData: TablesInsert<"quiz_sessions"> = {
           first_name: firstName,
           last_name: lastName || null,
           email: data.email,
