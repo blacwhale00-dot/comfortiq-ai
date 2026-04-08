@@ -2,6 +2,7 @@ import { useState, useCallback, useEffect, useRef } from "react";
 import Layout from "@/components/Layout";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
+import type { TablesInsert, TablesUpdate } from "@/integrations/supabase/types";
 import { AnimatePresence, motion } from "framer-motion";
 import { quizQuestions, getMirrorResponse, deriveVariables, calculateProfile } from "@/components/quiz/conciergeConfig";
 import ConciergeQuestion from "@/components/quiz/ConciergeQuestion";
