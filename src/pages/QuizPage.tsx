@@ -119,7 +119,7 @@ export default function QuizPage() {
         }).eq("id", sessionId);
       } else {
         const vars = deriveVariables(answers);
-        const insertData: Record<string, any> = {
+        const insertData: TablesInsert<"quiz_sessions"> = {
           first_name: firstName,
           last_name: lastName || null,
           email: data.email,
