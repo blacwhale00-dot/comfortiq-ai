@@ -12,6 +12,7 @@ import EducationPage from "./pages/EducationPage.tsx";
 import BlogPage from "./pages/BlogPage.tsx";
 import PrivacyPage from "./pages/PrivacyPage.tsx";
 import CashFlowCloserPage from "./pages/CashFlowCloserPage.tsx";
+import IntelligencePage from "./pages/IntelligencePage.tsx";
 import NotFound from "./pages/NotFound.tsx";
 
 const queryClient = new QueryClient();
@@ -32,6 +33,7 @@ const App = () => (
           <Route path="/blog" element={<BlogPage />} />
           <Route path="/privacy" element={<PrivacyPage />} />
           <Route path="/cash-flow" element={<CashFlowCloserPage />} />
+          <Route path="/intelligence" element={<IntelligencePage />} />
           <Route path="*" element={<NotFound />} />
         </Routes>
       </BrowserRouter>
