@@ -4,14 +4,15 @@ import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import type { TablesInsert, TablesUpdate } from "@/integrations/supabase/types";
 import { AnimatePresence, motion } from "framer-motion";
-import { quizQuestions, getMirrorResponse, deriveVariables, calculateProfile } from "@/components/quiz/conciergeConfig";
+import { quizQuestions, getMirrorResponse } from "@/components/quiz/conciergeConfig";
 import { getCoraReaction } from "@/components/quiz/coraReactions";
 import ConciergeQuestion from "@/components/quiz/ConciergeQuestion";
 import ConciergeMessage from "@/components/quiz/ConciergeMessage";
-import ReadinessProfile from "@/components/quiz/ReadinessProfile";
 import ResultsGate, { ResultsGateData } from "@/components/quiz/ResultsGate";
 import CoraBubble from "@/components/quiz/CoraBubble";
 import AnalyzingTransition from "@/components/quiz/AnalyzingTransition";
+import GuzzlerResults, { GuzzlerResultsData } from "@/components/quiz/GuzzlerResults";
+import { calculateGuzzlerScore } from "@/lib/guzzler-score";
 
 type Phase = "intro" | "question" | "mirror" | "gate" | "analyzing" | "results";
 
@@ -58,6 +59,7 @@ export default function QuizPage() {
   const [mirrorText, setMirrorText] = useState("");
   const [coraComment, setCoraComment] = useState("Hi! I'm Cora — I'll comment on your answers as we go. Ready when you are.");
   const [gateSubmitting, setGateSubmitting] = useState(false);
+  const [guzzlerData, setGuzzlerData] = useState<GuzzlerResultsData | null>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
 
   const totalQ = quizQuestions.length;
@@ -213,7 +215,51 @@ export default function QuizPage() {
     setGateSubmitting(false);
   };
 
-  const profile = phase === "results" ? calculateProfile(deriveVariables(answers), answers) : null;
+  // Fetch property intelligence + compute guzzler score after analyzing completes
+  const finalizeResults = useCallback(async () => {
+    let yearBuilt: number | null = null;
+    let yearBuiltSource: "County" | "Homeowner" | "Unknown" = "Unknown";
+    let silenceYears: number | null = null;
+    let lastPermitDate: string | null = null;
+
+    if (sessionId) {
+      try {
+        const { data } = await supabase
+          .from("property_intelligence")
+          .select("county_year_built, source_year_built, permit_silence_years, permit_last_hvac_date, homeowner_reported_system_age")
+          .eq("quiz_session_id", sessionId)
+          .maybeSingle();
+
+        if (data) {
+          if (data.county_year_built) {
+            yearBuilt = data.county_year_built;
+            yearBuiltSource = data.source_year_built === "County" ? "County" : "Homeowner";
+          }
+          silenceYears = data.permit_silence_years;
+          lastPermitDate = data.permit_last_hvac_date;
+        }
+      } catch (err) {
+        console.error("Failed to fetch property intelligence:", err);
+      }
+    }
+
+    const result = calculateGuzzlerScore({
+      bills: answers.bills,
+      systemAgeBand: answers.system_age,
+      emergencies: answers.emergencies,
+      temperature: answers.temperature,
+      yearBuilt,
+      silenceYears,
+      lastPermitDate,
+      yearBuiltSource,
+    });
+
+    setGuzzlerData(result);
+    setCoraComment(
+      "The data is clear — your home is a perfect candidate for this upgrade. To finalize your credit and see your rough estimate, I just need a few photos of your current equipment.",
+    );
+    setPhase("results");
+  }, [sessionId, answers]);
 
   return (
     <Layout>
@@ -312,15 +358,12 @@ export default function QuizPage() {
             <AnalyzingTransition
               key="analyzing"
               durationMs={4500}
-              onComplete={() => {
-                setCoraComment("Brief is ready. Let's review what I found.");
-                setPhase("results");
-              }}
+              onComplete={finalizeResults}
             />
           )}
 
           {/* Results */}
-          {phase === "results" && profile && (
+          {phase === "results" && guzzlerData && (
             <motion.div
               key="results"
               initial={{ opacity: 0, y: 20 }}
@@ -328,7 +371,7 @@ export default function QuizPage() {
               exit={{ opacity: 0 }}
               transition={{ duration: 0.5 }}
             >
-              <ReadinessProfile profile={profile} />
+              <GuzzlerResults data={guzzlerData} />
             </motion.div>
           )}
         </AnimatePresence>
