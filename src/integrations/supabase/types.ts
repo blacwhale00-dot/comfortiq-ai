@@ -14,6 +14,114 @@ export type Database = {
   }
   public: {
     Tables: {
+      property_intelligence: {
+        Row: {
+          city: string | null
+          confidence_tier: string | null
+          county_verified_sqft: number | null
+          county_year_built: number | null
+          created_at: string
+          enrichment_confidence: number | null
+          homeowner_reported_sqft: string | null
+          homeowner_reported_system_age: number | null
+          id: string
+          permit_last_hvac_date: string | null
+          permit_silence_years: number | null
+          primary_source:
+            | Database["public"]["Enums"]["intelligence_source"]
+            | null
+          quiz_session_id: string | null
+          raw_payload: Json | null
+          source_permit:
+            | Database["public"]["Enums"]["intelligence_source"]
+            | null
+          source_sqft: Database["public"]["Enums"]["intelligence_source"] | null
+          source_year_built:
+            | Database["public"]["Enums"]["intelligence_source"]
+            | null
+          sqft_locked: boolean
+          state: string | null
+          street_address: string | null
+          updated_at: string
+          year_built_locked: boolean
+          zip_code: string | null
+        }
+        Insert: {
+          city?: string | null
+          confidence_tier?: string | null
+          county_verified_sqft?: number | null
+          county_year_built?: number | null
+          created_at?: string
+          enrichment_confidence?: number | null
+          homeowner_reported_sqft?: string | null
+          homeowner_reported_system_age?: number | null
+          id?: string
+          permit_last_hvac_date?: string | null
+          permit_silence_years?: number | null
+          primary_source?:
+            | Database["public"]["Enums"]["intelligence_source"]
+            | null
+          quiz_session_id?: string | null
+          raw_payload?: Json | null
+          source_permit?:
+            | Database["public"]["Enums"]["intelligence_source"]
+            | null
+          source_sqft?:
+            | Database["public"]["Enums"]["intelligence_source"]
+            | null
+          source_year_built?:
+            | Database["public"]["Enums"]["intelligence_source"]
+            | null
+          sqft_locked?: boolean
+          state?: string | null
+          street_address?: string | null
+          updated_at?: string
+          year_built_locked?: boolean
+          zip_code?: string | null
+        }
+        Update: {
+          city?: string | null
+          confidence_tier?: string | null
+          county_verified_sqft?: number | null
+          county_year_built?: number | null
+          created_at?: string
+          enrichment_confidence?: number | null
+          homeowner_reported_sqft?: string | null
+          homeowner_reported_system_age?: number | null
+          id?: string
+          permit_last_hvac_date?: string | null
+          permit_silence_years?: number | null
+          primary_source?:
+            | Database["public"]["Enums"]["intelligence_source"]
+            | null
+          quiz_session_id?: string | null
+          raw_payload?: Json | null
+          source_permit?:
+            | Database["public"]["Enums"]["intelligence_source"]
+            | null
+          source_sqft?:
+            | Database["public"]["Enums"]["intelligence_source"]
+            | null
+          source_year_built?:
+            | Database["public"]["Enums"]["intelligence_source"]
+            | null
+          sqft_locked?: boolean
+          state?: string | null
+          street_address?: string | null
+          updated_at?: string
+          year_built_locked?: boolean
+          zip_code?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "property_intelligence_quiz_session_id_fkey"
+            columns: ["quiz_session_id"]
+            isOneToOne: false
+            referencedRelation: "quiz_sessions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       quiz_sessions: {
         Row: {
           age: number | null
@@ -139,7 +247,7 @@ export type Database = {
       [_ in never]: never
     }
     Enums: {
-      [_ in never]: never
+      intelligence_source: "County" | "Shovels" | "Zillow" | "EDS"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -266,6 +374,8 @@ export type CompositeTypes<
 
 export const Constants = {
   public: {
-    Enums: {},
+    Enums: {
+      intelligence_source: ["County", "Shovels", "Zillow", "EDS"],
+    },
   },
 } as const
