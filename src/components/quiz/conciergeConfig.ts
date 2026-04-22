@@ -120,6 +120,19 @@ export const quizQuestions: QuizQuestion[] = [
     sliderMin: 1,
     sliderMax: 5,
   },
+  {
+    id: "residents",
+    dbKey: "residents",
+    question: "How many people live in your home?",
+    subtext: "This helps us size the system for your real load.",
+    type: "choice",
+    options: [
+      { value: "1", label: "Just me", emoji: "🧍" },
+      { value: "2", label: "2 people", emoji: "👫" },
+      { value: "3-4", label: "3–4 people", emoji: "👨‍👩‍👧" },
+      { value: "5+", label: "5 or more", emoji: "👨‍👩‍👧‍👦" },
+    ],
+  },
 ];
 
 // Mirror responses keyed by question id + answer value

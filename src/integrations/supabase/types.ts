@@ -147,6 +147,7 @@ export type Database = {
           pain_trust: number | null
           phone: string | null
           project_tier: string | null
+          residents: number | null
           roi_report: Json | null
           solar_interest: boolean | null
           square_footage: string | null
@@ -185,6 +186,7 @@ export type Database = {
           pain_trust?: number | null
           phone?: string | null
           project_tier?: string | null
+          residents?: number | null
           roi_report?: Json | null
           solar_interest?: boolean | null
           square_footage?: string | null
@@ -223,6 +225,7 @@ export type Database = {
           pain_trust?: number | null
           phone?: string | null
           project_tier?: string | null
+          residents?: number | null
           roi_report?: Json | null
           solar_interest?: boolean | null
           square_footage?: string | null

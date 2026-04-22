@@ -4,8 +4,16 @@ import { Lock, Sparkles } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 
+export interface ResultsGateData {
+  fullName: string;
+  email: string;
+  phone: string;
+  streetAddress: string;
+  zipCode: string;
+}
+
 interface ResultsGateProps {
-  onSubmit: (data: { fullName: string; email: string; phone: string }) => void;
+  onSubmit: (data: ResultsGateData) => void;
   isSubmitting?: boolean;
 }
 
@@ -13,12 +21,26 @@ export default function ResultsGate({ onSubmit, isSubmitting }: ResultsGateProps
   const [fullName, setFullName] = useState("");
   const [email, setEmail] = useState("");
   const [phone, setPhone] = useState("");
+  const [streetAddress, setStreetAddress] = useState("");
+  const [zipCode, setZipCode] = useState("");
 
-  const isValid = fullName.trim().length >= 2 && email.includes("@") && phone.trim().length >= 7;
+  const isValid =
+    fullName.trim().length >= 2 &&
+    email.includes("@") &&
+    phone.trim().length >= 7 &&
+    streetAddress.trim().length >= 4 &&
+    zipCode.trim().length >= 5;
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (isValid) onSubmit({ fullName: fullName.trim(), email: email.trim(), phone: phone.trim() });
+    if (isValid)
+      onSubmit({
+        fullName: fullName.trim(),
+        email: email.trim(),
+        phone: phone.trim(),
+        streetAddress: streetAddress.trim(),
+        zipCode: zipCode.trim(),
+      });
   };
 
   return (
@@ -43,7 +65,7 @@ export default function ResultsGate({ onSubmit, isSubmitting }: ResultsGateProps
             Unlock My Results
           </h2>
           <p className="text-sm text-primary-foreground/80 mt-2 max-w-xs mx-auto">
-            Your diagnostic is complete. Enter your details to reveal your Readiness Score &amp; claim your <strong>$900 discount</strong>.
+            Your diagnostic is complete. We'll cross-check your address against County records to build your evidence brief.
           </p>
         </div>
       </div>
@@ -98,6 +120,40 @@ export default function ResultsGate({ onSubmit, isSubmitting }: ResultsGateProps
           />
         </div>
 
+        <div className="space-y-2">
+          <Label htmlFor="gate-address" className="text-foreground font-semibold text-sm">
+            Street Address
+          </Label>
+          <Input
+            id="gate-address"
+            type="text"
+            placeholder="1428 Magnolia Ridge Dr"
+            value={streetAddress}
+            onChange={(e) => setStreetAddress(e.target.value)}
+            className="h-12 rounded-xl border-border bg-surface text-foreground placeholder:text-muted-foreground"
+            autoComplete="street-address"
+            required
+          />
+        </div>
+
+        <div className="space-y-2">
+          <Label htmlFor="gate-zip" className="text-foreground font-semibold text-sm">
+            ZIP Code
+          </Label>
+          <Input
+            id="gate-zip"
+            type="text"
+            inputMode="numeric"
+            placeholder="30062"
+            maxLength={10}
+            value={zipCode}
+            onChange={(e) => setZipCode(e.target.value)}
+            className="h-12 rounded-xl border-border bg-surface text-foreground placeholder:text-muted-foreground"
+            autoComplete="postal-code"
+            required
+          />
+        </div>
+
         <button
           type="submit"
           disabled={!isValid || isSubmitting}
@@ -118,7 +174,7 @@ export default function ResultsGate({ onSubmit, isSubmitting }: ResultsGateProps
         </button>
 
         <p className="text-xs text-muted-foreground text-center leading-relaxed">
-          We'll never spam you. Your info is used only to deliver your personalized report.
+          We'll never spam you. Your address is used only to verify public property records.
         </p>
       </form>
     </motion.div>

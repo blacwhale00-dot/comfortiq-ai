@@ -5,12 +5,43 @@ import { supabase } from "@/integrations/supabase/client";
 import type { TablesInsert, TablesUpdate } from "@/integrations/supabase/types";
 import { AnimatePresence, motion } from "framer-motion";
 import { quizQuestions, getMirrorResponse, deriveVariables, calculateProfile } from "@/components/quiz/conciergeConfig";
+import { getCoraReaction } from "@/components/quiz/coraReactions";
 import ConciergeQuestion from "@/components/quiz/ConciergeQuestion";
 import ConciergeMessage from "@/components/quiz/ConciergeMessage";
 import ReadinessProfile from "@/components/quiz/ReadinessProfile";
-import ResultsGate from "@/components/quiz/ResultsGate";
+import ResultsGate, { ResultsGateData } from "@/components/quiz/ResultsGate";
+import CoraBubble from "@/components/quiz/CoraBubble";
+import AnalyzingTransition from "@/components/quiz/AnalyzingTransition";
 
-type Phase = "intro" | "question" | "mirror" | "gate" | "calculating" | "results";
+type Phase = "intro" | "question" | "mirror" | "gate" | "analyzing" | "results";
+
+// Helper: build the pain-score payload from raw answers.
+function buildPainPayload(answers: Record<string, string | number>) {
+  return {
+    pain_temperature: Number(answers.temperature) || null,
+    pain_bills: answers.bills === "high" ? 5 : answers.bills === "med" ? 3 : answers.bills === "low" ? 1 : null,
+    pain_system_age: answers.system_age === ">15" ? 5 : answers.system_age === "12-15" ? 4 : answers.system_age === "8-12" ? 3 : answers.system_age === "<8" ? 1 : null,
+    pain_emergencies: answers.emergencies === "true" ? 5 : answers.emergencies === "false" ? 1 : null,
+    pain_confusion: Number(answers.confusion) || null,
+    pain_health: answers.health === "true" ? 5 : answers.health === "false" ? 1 : null,
+    pain_trust: Number(answers.trust) || null,
+    pain_moisture: Number(answers.moisture) || null,
+    pain_financial: answers.financial === "high" ? 5 : answers.financial === "med" ? 3 : answers.financial === "low" ? 1 : null,
+    pain_confidence: Number(answers.confidence) || null,
+    residents: answers.residents === "5+" ? 5 : answers.residents === "3-4" ? 4 : Number(answers.residents) || null,
+  };
+}
+
+// Map system_age band to a homeowner-reported integer (years).
+function systemAgeToYears(band: string | number | undefined): number | null {
+  switch (String(band)) {
+    case "<8": return 5;
+    case "8-12": return 10;
+    case "12-15": return 13;
+    case ">15": return 18;
+    default: return null;
+  }
+}
 
 export default function QuizPage() {
   const navigate = useNavigate();
@@ -25,11 +56,12 @@ export default function QuizPage() {
   });
   const [sessionId, setSessionId] = useState<string | null>(null);
   const [mirrorText, setMirrorText] = useState("");
+  const [coraComment, setCoraComment] = useState("Hi! I'm Cora — I'll comment on your answers as we go. Ready when you are.");
   const [gateSubmitting, setGateSubmitting] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
 
   const totalQ = quizQuestions.length;
-  const progress = phase === "results" || phase === "calculating"
+  const progress = phase === "results" || phase === "analyzing"
     ? 100
     : phase === "gate"
     ? 95
@@ -37,20 +69,10 @@ export default function QuizPage() {
     ? 0
     : ((currentQ + (phase === "mirror" ? 1 : 0)) / totalQ) * 100;
 
-  // Save to DB
+  // Save partial progress to DB
   const saveSession = useCallback(async (final = false) => {
-    const vars = deriveVariables(answers);
     const data: TablesUpdate<"quiz_sessions"> = {
-      pain_temperature: Number(answers.temperature) || null,
-      pain_bills: answers.bills === "high" ? 5 : answers.bills === "med" ? 3 : answers.bills === "low" ? 1 : null,
-      pain_system_age: answers.system_age === ">15" ? 5 : answers.system_age === "12-15" ? 4 : answers.system_age === "8-12" ? 3 : answers.system_age === "<8" ? 1 : null,
-      pain_emergencies: answers.emergencies === "true" ? 5 : answers.emergencies === "false" ? 1 : null,
-      pain_confusion: Number(answers.confusion) || null,
-      pain_health: answers.health === "true" ? 5 : answers.health === "false" ? 1 : null,
-      pain_trust: Number(answers.trust) || null,
-      pain_moisture: Number(answers.moisture) || null,
-      pain_financial: answers.financial === "high" ? 5 : answers.financial === "med" ? 3 : answers.financial === "low" ? 1 : null,
-      pain_confidence: Number(answers.confidence) || null,
+      ...buildPainPayload(answers),
       funnel_status: final ? "quiz_complete" : `question_${currentQ + 1}`,
     };
 
@@ -68,13 +90,15 @@ export default function QuizPage() {
 
   const startQuiz = () => {
     setPhase("question");
+    setCoraComment("Let's start simple. I'll react as you answer.");
   };
 
   const handleAnswer = () => {
     const q = quizQuestions[currentQ];
     const val = answers[q.id];
-    const mirror = getMirrorResponse(q.id, val ?? 3);
-    setMirrorText(mirror);
+    setMirrorText(getMirrorResponse(q.id, val ?? 3));
+    const reaction = getCoraReaction(q.id, val ?? 3);
+    if (reaction) setCoraComment(reaction);
     setPhase("mirror");
     saveSession();
   };
@@ -86,8 +110,8 @@ export default function QuizPage() {
           setCurrentQ((c) => c + 1);
           setPhase("question");
         } else {
-          // Last question → gate (lead capture)
           setPhase("gate");
+          setCoraComment("Almost there. Add your address so I can pull your County records.");
         }
       }, 2500);
       return () => clearTimeout(timer);
@@ -103,52 +127,89 @@ export default function QuizPage() {
     setAnswers((a) => ({ ...a, [q.id]: val }));
   };
 
-  const handleGateSubmit = async (data: { fullName: string; email: string; phone: string }) => {
+  // Create or update the property_intelligence record linked to this session.
+  const linkPropertyIntelligence = async (
+    quizSessionId: string,
+    gate: ResultsGateData,
+  ) => {
+    try {
+      const reportedSqft = String(answers.square_footage ?? "").trim() || null;
+      const reportedAge = systemAgeToYears(answers.system_age);
+
+      // Upsert by quiz_session_id (one intelligence record per lead)
+      const { data: existing } = await supabase
+        .from("property_intelligence")
+        .select("id")
+        .eq("quiz_session_id", quizSessionId)
+        .maybeSingle();
+
+      const payload = {
+        quiz_session_id: quizSessionId,
+        street_address: gate.streetAddress,
+        zip_code: gate.zipCode,
+        state: "GA",
+        homeowner_reported_sqft: reportedSqft,
+        homeowner_reported_system_age: reportedAge,
+      };
+
+      if (existing) {
+        await supabase
+          .from("property_intelligence")
+          .update(payload)
+          .eq("id", existing.id);
+      } else {
+        await supabase.from("property_intelligence").insert(payload);
+      }
+    } catch (err) {
+      console.error("Failed to link property intelligence:", err);
+    }
+  };
+
+  const handleGateSubmit = async (data: ResultsGateData) => {
     setGateSubmitting(true);
     const [firstName, ...lastParts] = data.fullName.split(" ");
     const lastName = lastParts.join(" ");
+    let activeId = sessionId;
 
     try {
-      if (sessionId) {
-        await supabase.from("quiz_sessions").update({
-          first_name: firstName,
-          last_name: lastName || null,
-          email: data.email,
-          phone: data.phone,
-          funnel_status: "quiz_complete",
-        }).eq("id", sessionId);
+      const baseRecord: TablesUpdate<"quiz_sessions"> = {
+        first_name: firstName,
+        last_name: lastName || null,
+        email: data.email,
+        phone: data.phone,
+        street_address: data.streetAddress,
+        zip_code: data.zipCode,
+        funnel_status: "quiz_complete",
+      };
+
+      if (activeId) {
+        await supabase.from("quiz_sessions").update(baseRecord).eq("id", activeId);
       } else {
-        const vars = deriveVariables(answers);
         const insertData: TablesInsert<"quiz_sessions"> = {
-          first_name: firstName,
-          last_name: lastName || null,
-          email: data.email,
-          phone: data.phone,
-          pain_temperature: Number(answers.temperature) || null,
-          pain_bills: answers.bills === "high" ? 5 : answers.bills === "med" ? 3 : answers.bills === "low" ? 1 : null,
-          pain_system_age: answers.system_age === ">15" ? 5 : answers.system_age === "12-15" ? 4 : answers.system_age === "8-12" ? 3 : answers.system_age === "<8" ? 1 : null,
-          pain_emergencies: answers.emergencies === "true" ? 5 : answers.emergencies === "false" ? 1 : null,
-          pain_confusion: Number(answers.confusion) || null,
-          pain_health: answers.health === "true" ? 5 : answers.health === "false" ? 1 : null,
-          pain_trust: Number(answers.trust) || null,
-          pain_moisture: Number(answers.moisture) || null,
-          pain_financial: answers.financial === "high" ? 5 : answers.financial === "med" ? 3 : answers.financial === "low" ? 1 : null,
-          pain_confidence: Number(answers.confidence) || null,
-          funnel_status: "quiz_complete",
+          ...buildPainPayload(answers),
+          ...baseRecord,
         };
-        const { data: inserted } = await supabase.from("quiz_sessions").insert(insertData).select("id").single();
+        const { data: inserted } = await supabase
+          .from("quiz_sessions")
+          .insert(insertData)
+          .select("id")
+          .single();
         if (inserted) {
+          activeId = inserted.id;
           setSessionId(inserted.id);
-          localStorage.setItem("comfortiq_session", inserted.id);
         }
+      }
+
+      if (activeId) {
+        localStorage.setItem("comfortiq_session", activeId);
+        await linkPropertyIntelligence(activeId, data);
       }
     } catch (err) {
       console.error("Failed to save lead:", err);
     }
 
-    if (sessionId) localStorage.setItem("comfortiq_session", sessionId);
-    setPhase("calculating");
-    setTimeout(() => setPhase("results"), 2500);
+    setCoraComment("Pulling your County records now. This is the part that makes everything else accurate.");
+    setPhase("analyzing");
     setGateSubmitting(false);
   };
 
@@ -161,7 +222,15 @@ export default function QuizPage() {
         <div className="container py-3">
           <div className="flex items-center justify-between mb-1.5">
             <p className="text-xs font-semibold tracking-wide uppercase text-muted-foreground">
-              {phase === "intro" ? "Welcome" : phase === "gate" ? "Almost there!" : phase === "calculating" || phase === "results" ? "Complete" : `Question ${currentQ + 1} of ${totalQ}`}
+              {phase === "intro"
+                ? "Welcome"
+                : phase === "gate"
+                ? "Almost there!"
+                : phase === "analyzing"
+                ? "Cross-checking records"
+                : phase === "results"
+                ? "Complete"
+                : `Question ${currentQ + 1} of ${totalQ}`}
             </p>
             <p className="text-xs font-medium text-primary">{Math.round(progress)}%</p>
           </div>
@@ -187,7 +256,7 @@ export default function QuizPage() {
               className="space-y-6"
             >
               <ConciergeMessage
-                message="Hi! I'm Comfort 👋 — your AI home advisor, trained by a 15-year HVAC expert. I'm going to ask you 10 quick questions to understand your home's comfort needs. It takes about 2 minutes. Ready?"
+                message="Hi! I'm Comfort 👋 — your AI home advisor, trained by a 15-year HVAC expert. I'm going to ask you 11 quick questions to understand your home's comfort needs. It takes about 2 minutes. Ready?"
               />
               <motion.button
                 initial={{ opacity: 0 }}
@@ -238,30 +307,16 @@ export default function QuizPage() {
             <ResultsGate onSubmit={handleGateSubmit} isSubmitting={gateSubmitting} />
           )}
 
-          {/* Calculating */}
-          {phase === "calculating" && (
-            <motion.div
-              key="calculating"
-              initial={{ opacity: 0, scale: 0.95 }}
-              animate={{ opacity: 1, scale: 1 }}
-              exit={{ opacity: 0, scale: 0.95 }}
-              transition={{ duration: 0.4 }}
-              className="text-center py-16 space-y-4"
-            >
-              <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-primary/10 mb-2">
-                <motion.div
-                  className="w-8 h-8 border-3 border-primary/30 border-t-primary rounded-full"
-                  animate={{ rotate: 360 }}
-                  transition={{ duration: 1, repeat: Infinity, ease: "linear" }}
-                />
-              </div>
-              <p className="text-lg font-display font-bold text-foreground">
-                Calculating Your Readiness Profile...
-              </p>
-              <p className="text-sm text-muted-foreground">
-                Analyzing your responses against 15 years of field data
-              </p>
-            </motion.div>
+          {/* Analyzing transition */}
+          {phase === "analyzing" && (
+            <AnalyzingTransition
+              key="analyzing"
+              durationMs={4500}
+              onComplete={() => {
+                setCoraComment("Brief is ready. Let's review what I found.");
+                setPhase("results");
+              }}
+            />
           )}
 
           {/* Results */}
@@ -278,6 +333,18 @@ export default function QuizPage() {
           )}
         </AnimatePresence>
       </div>
+
+      {/* Floating Cora assistant */}
+      <CoraBubble
+        comment={coraComment}
+        hint={
+          phase === "question"
+            ? `Question ${currentQ + 1} of ${totalQ}`
+            : phase === "analyzing"
+            ? "Cross-referencing County + Permits..."
+            : undefined
+        }
+      />
     </Layout>
   );
 }
