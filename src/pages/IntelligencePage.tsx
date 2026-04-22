@@ -5,7 +5,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { LeadIntelligencePanel, PropertyIntelligence } from "@/components/intelligence/LeadIntelligencePanel";
 import { Loader2, Database, FlaskConical } from "lucide-react";
-import { Layout } from "@/components/Layout";
+import Layout from "@/components/Layout";
 
 type IntelRow = Tables<"property_intelligence">;
 
