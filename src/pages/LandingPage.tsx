@@ -1,28 +1,73 @@
-import { useState } from "react";
 import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import Layout from "@/components/Layout";
-import { DollarSign, Users, FileText, ShieldCheck, Clock, Heart, Zap } from "lucide-react";
+import { AlertOctagon, TrendingDown, BadgeCheck, Gauge, ShieldCheck, Clock, Heart, ArrowRight } from "lucide-react";
 import { motion } from "framer-motion";
-import heroPattern from "@/assets/hero-pattern.png";
-import HomeComfortCard from "@/components/HomeComfortCard";
-import ExpressAuditGate from "@/components/ExpressAuditGate";
-import ExpertBillboard from "@/components/ExpertBillboard";
+import guzzlerLogo from "@/assets/guzzler-score-logo.png";
 
 const fadeUp = {
-  hidden: { opacity: 0, y: 30 },
-  visible: { opacity: 1, y: 0, transition: { duration: 0.6, ease: "easeOut" as const } },
+  hidden: { opacity: 0, y: 16 },
+  visible: { opacity: 1, y: 0, transition: { duration: 0.45, ease: "easeOut" as const } },
 };
 
-const staggerContainer = {
+const stagger = {
   hidden: {},
-  visible: { transition: { staggerChildren: 0.12 } },
+  visible: { transition: { staggerChildren: 0.08 } },
 };
 
-const benefits = [
-  { icon: DollarSign, title: "Save Money", desc: "Identify inefficiencies costing you hundreds per year" },
-  { icon: Users, title: "Expert Guidance", desc: "AI trained by 15-year HVAC professionals" },
-  { icon: FileText, title: "Free Estimate", desc: "Get transparent pricing in under 2 minutes" },
+const todayLabel = new Date().toLocaleDateString("en-US", {
+  month: "long",
+  day: "numeric",
+  year: "numeric",
+});
+
+type Module = {
+  icon: typeof AlertOctagon;
+  iconBg: string;
+  iconColor: string;
+  eyebrow: string;
+  title: string;
+  body: string;
+  to: string;
+};
+
+const modules: Module[] = [
+  {
+    icon: AlertOctagon,
+    iconBg: "bg-destructive/10",
+    iconColor: "text-destructive",
+    eyebrow: "System Alert",
+    title: "Action Required: High Guzzling Detected",
+    body: "90° Day risk. A proactive fix could prevent an emergency.",
+    to: "/quiz",
+  },
+  {
+    icon: TrendingDown,
+    iconBg: "bg-primary/10",
+    iconColor: "text-primary",
+    eyebrow: "Bill Health",
+    title: "Potential Savings Insight",
+    body: "Your Guzzler Score is high, but your usage is proactive. Optimize now to maximize savings.",
+    to: "/quiz",
+  },
+  {
+    icon: BadgeCheck,
+    iconBg: "bg-primary/10",
+    iconColor: "text-primary",
+    eyebrow: "Pro-Blueprint",
+    title: "Expert Blueprint by Will Macon",
+    body: "Verified HVAC Architect with 20+ years of Atlanta experience. View your custom plan.",
+    to: "/intelligence",
+  },
+  {
+    icon: Gauge,
+    iconBg: "bg-accent/15",
+    iconColor: "text-accent",
+    eyebrow: "Cost Impact Assessment",
+    title: "Is Your System Guzzling?",
+    body: "Uncover exactly where your HVAC system is leaking value — and how to stop it.",
+    to: "/quiz",
+  },
 ];
 
 const trustItems = [
@@ -31,294 +76,121 @@ const trustItems = [
   { icon: Heart, text: "No Commitment Required" },
 ];
 
-const steps = [
-  { num: 1, title: "Tell Us About Your Home", desc: "Complete our 60-second quiz so we understand your comfort needs." },
-  { num: 2, title: "Upload Photos, Unlock Discounts", desc: "Snap photos of your equipment to unlock up to $900 off." },
-  { num: 3, title: "Get Your Personalized Estimate", desc: "Receive transparent pricing & book your free in-home consultation." },
-];
-
-const Section = ({ children, className = "" }: { children: React.ReactNode; className?: string }) => (
-  <motion.section
-    initial="hidden"
-    whileInView="visible"
-    viewport={{ once: true, amount: 0.2 }}
-    variants={fadeUp}
-    className={className}
-  >
-    {children}
-  </motion.section>
-);
-
 export default function LandingPage() {
-  const [expressOpen, setExpressOpen] = useState(false);
-
   return (
     <Layout>
-      {/* Billboard — Express Audit Trigger */}
-      <button
-        onClick={() => setExpressOpen(true)}
-        className="w-full gradient-amber py-4 px-4 text-center cursor-pointer hover:brightness-105 transition-all duration-200"
-      >
-        <p className="text-accent-foreground font-display font-extrabold text-base md:text-lg leading-snug">
-          ⚡ INSTANT HVAC REPLACEMENT QUOTES — Unlock Your $900 Credit in 60 Seconds
-        </p>
-      </button>
-
-      <ExpressAuditGate open={expressOpen} onOpenChange={setExpressOpen} />
-
-      {/* Triage Split */}
-      <motion.div
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.6, ease: "easeOut", delay: 0.2 }}
-        className="container py-4 pb-8"
-      >
-        <div className="flex flex-col sm:flex-row gap-3 max-w-2xl mx-auto">
-          <button
-            onClick={() => setExpressOpen(true)}
-            className="flex-1 flex items-center gap-3 px-5 py-4 rounded-xl border border-border bg-background hover:border-destructive/40 hover:bg-destructive/5 text-left group transition-all duration-200 ease-out hover:-translate-y-1 hover:shadow-card-hover animate-[urgency-pulse_3s_ease-in-out_infinite]"
-          >
-            <span className="text-2xl shrink-0">🚨</span>
-            <div>
-              <p className="font-display font-bold text-sm text-foreground leading-snug">System Emergency?</p>
-              <p className="text-xs text-muted-foreground mt-0.5">90° Day / Family at home → Express Audit</p>
-            </div>
-          </button>
-          <Link
-            to="/quiz"
-            className="flex-1 flex items-center gap-3 px-5 py-4 rounded-xl border border-border bg-background hover:border-primary/40 hover:bg-primary/5 text-left group transition-all duration-200 ease-out hover:-translate-y-1 hover:shadow-card-hover"
-          >
-            <span className="text-2xl shrink-0">📉</span>
-            <div>
-              <p className="font-display font-bold text-sm text-foreground leading-snug">High Bills?</p>
-              <p className="text-xs text-muted-foreground mt-0.5">Proactive Planning → 60-Sec Quiz</p>
-            </div>
-          </Link>
+      {/* Page intro */}
+      <section className="bg-background">
+        <div className="container max-w-3xl text-center pt-6 pb-4">
+          <h1 className="font-display font-extrabold text-2xl md:text-4xl text-foreground tracking-tight">
+            Your HVAC Health, Simplified.
+          </h1>
+          <p className="mt-2 text-sm md:text-base text-muted-foreground">
+            See your system's score and unlock personalized recommendations.
+          </p>
         </div>
-      </motion.div>
+      </section>
 
-      {/* Expert Billboard */}
-      <ExpertBillboard />
-
-      {/* Hero */}
-      <section className="relative overflow-hidden">
-        <div className="absolute inset-0 opacity-10">
-          <img src={heroPattern} alt="" className="w-full h-full object-cover" />
-        </div>
+      {/* Hero Score */}
+      <section className="bg-background">
         <motion.div
           initial="hidden"
           animate="visible"
-          variants={staggerContainer}
-          className="container relative py-24 md:py-36 flex flex-col items-center text-center"
+          variants={stagger}
+          className="container max-w-2xl flex flex-col items-center text-center pb-8"
         >
-          <motion.div variants={fadeUp} className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-primary/10 text-primary text-sm font-medium mb-6 mt-5">
-            <span className="w-2 h-2 rounded-full bg-primary animate-pulse" />
-            AI-Powered Home Comfort Assessment
-          </motion.div>
-          <motion.h1 variants={fadeUp} className="text-4xl md:text-6xl font-display font-extrabold text-foreground leading-tight max-w-3xl">
-            Is Your HVAC System <span className="text-primary">Costing You</span> Too Much?
-          </motion.h1>
-          <motion.p variants={fadeUp} className="mt-6 text-lg text-muted-foreground max-w-xl">
-            Take our free 60-second assessment and discover how much you could save with smarter home comfort.
-          </motion.p>
-          <motion.div variants={fadeUp} className="mt-10 w-full flex flex-col items-center gap-6">
-            <img src="/assets/comfortiq-logo.png" alt="ComfortIQ.AI" className="h-24 w-auto" />
-            <HomeComfortCard />
-          </motion.div>
-          <motion.div variants={fadeUp} className="mt-8">
-            <Button asChild variant="hero" size="xl">
-              <Link to="/quiz">Take the Free 60-Second Assessment</Link>
-            </Button>
-          </motion.div>
-          <motion.div variants={fadeUp} className="mt-12 flex flex-col sm:flex-row items-center gap-6 sm:gap-10">
-            {trustItems.map((item) => (
-              <div key={item.text} className="flex items-center gap-2 text-muted-foreground text-sm">
-                <item.icon className="w-5 h-5 text-primary" />
-                <span>{item.text}</span>
-              </div>
-            ))}
+          <motion.div
+            variants={fadeUp}
+            className="w-full rounded-3xl border border-border bg-background shadow-card px-4 py-6 md:py-8"
+          >
+            <img
+              src={guzzlerLogo}
+              alt="The Guzzler Score — your home's HVAC efficiency rating"
+              className="mx-auto w-full max-w-[340px] md:max-w-[420px] h-auto object-contain"
+            />
+            <h2 className="mt-5 font-display font-extrabold text-xl md:text-3xl text-foreground">
+              Your Home's Guzzler Score
+            </h2>
+            <p className="mt-1 text-xs md:text-sm text-muted-foreground">
+              Updated {todayLabel}
+            </p>
           </motion.div>
         </motion.div>
       </section>
 
-      {/* Benefits */}
-      <Section className="py-20 bg-surface">
+      {/* Dashboard modules */}
+      <section className="bg-background">
         <motion.div
           initial="hidden"
           whileInView="visible"
-          viewport={{ once: true, amount: 0.2 }}
-          variants={staggerContainer}
-          className="container"
+          viewport={{ once: true, amount: 0.15 }}
+          variants={stagger}
+          className="container max-w-3xl pb-10"
         >
-          <div className="grid md:grid-cols-3 gap-8">
-            {benefits.map((b) => (
-              <motion.div
-                key={b.title}
-                variants={fadeUp}
-                className="bg-background rounded-2xl p-8 shadow-card hover:shadow-card-hover transition-shadow duration-300 text-center"
-              >
-                <div className="w-14 h-14 rounded-2xl gradient-teal flex items-center justify-center mx-auto mb-5">
-                  <b.icon className="w-7 h-7 text-primary-foreground" />
-                </div>
-                <h3 className="font-display font-bold text-lg text-foreground mb-2">{b.title}</h3>
-                <p className="text-sm text-muted-foreground leading-relaxed">{b.desc}</p>
-              </motion.div>
-            ))}
-          </div>
-        </motion.div>
-      </Section>
-
-      {/* How It Works */}
-      <Section className="py-20">
-        <motion.div
-          initial="hidden"
-          whileInView="visible"
-          viewport={{ once: true, amount: 0.2 }}
-          variants={staggerContainer}
-          className="container max-w-3xl"
-        >
-          <motion.h2 variants={fadeUp} className="text-2xl md:text-3xl font-display font-bold text-foreground text-center mb-12">
-            How It Works
-          </motion.h2>
-          <div className="space-y-10">
-            {steps.map((s) => (
-              <motion.div key={s.num} variants={fadeUp} className="flex gap-5 items-start">
-                <div className="flex-shrink-0 w-10 h-10 rounded-full gradient-teal flex items-center justify-center text-primary-foreground font-display font-bold text-lg">
-                  {s.num}
-                </div>
-                <div>
-                  <h3 className="font-display font-bold text-foreground text-lg">{s.title}</h3>
-                  <p className="text-muted-foreground text-sm mt-1 leading-relaxed">{s.desc}</p>
-                </div>
-              </motion.div>
-            ))}
-          </div>
-        </motion.div>
-      </Section>
-
-      {/* Savings Teaser */}
-      <Section className="py-16 gradient-amber">
-        <div className="container text-center max-w-2xl">
-          <motion.p
-            initial={{ opacity: 0, scale: 0.9 }}
-            whileInView={{ opacity: 1, scale: 1 }}
-            viewport={{ once: true }}
-            transition={{ duration: 0.5, ease: "easeOut" }}
-            className="text-5xl md:text-6xl font-display font-extrabold text-accent-foreground mb-4"
+          <motion.h3
+            variants={fadeUp}
+            className="font-display font-bold text-base text-foreground mb-3 px-1"
           >
-            Up to $900 in Discounts
-          </motion.p>
-          <p className="text-accent-foreground/80 leading-relaxed">
-            Upload photos of your outdoor unit, breaker panel, thermostat, and electric bill to unlock your full savings.
-          </p>
-          <div className="mt-8">
-            <Button asChild variant="default" size="lg" className="bg-foreground text-background hover:bg-foreground/90">
-              <Link to="/quiz">Start Unlocking Savings</Link>
-            </Button>
-          </div>
-        </div>
-      </Section>
-
-      {/* Solar Bonus Callout */}
-      <Section className="bg-primary">
-        <div className="container py-5 flex flex-col sm:flex-row items-center justify-center gap-3 text-center sm:text-left">
-          <Zap className="w-5 h-5 text-primary-foreground" />
-          <p className="text-primary-foreground text-sm font-medium">
-            Upload your electric bill and receive a <span className="font-bold">FREE Solar Savings Report</span> — see how to eliminate your electric bill entirely.
-          </p>
-        </div>
-      </Section>
-
-      {/* Testimonials */}
-      <Section className="py-20 bg-surface">
-        <motion.div
-          initial="hidden"
-          whileInView="visible"
-          viewport={{ once: true, amount: 0.2 }}
-          variants={staggerContainer}
-          className="container"
-        >
-          <motion.h2 variants={fadeUp} className="text-2xl md:text-3xl font-display font-bold text-foreground text-center mb-12">
-            What Atlanta Homeowners Are Saying
-          </motion.h2>
-          <div className="grid md:grid-cols-3 gap-8">
-            {[
-              {
-                quote: "I had no idea my 12-year-old system was costing me an extra $180/month. The assessment took barely a minute and the team was zero pressure. Best home improvement decision we've made.",
-                name: "Marcus T.",
-                location: "Buckhead, GA",
-                saved: "$900 saved",
-              },
-              {
-                quote: "The photo upload for discounts was genius — I snapped a few pics and unlocked $650 off instantly. The whole experience felt like using a modern app, not dealing with an old-school HVAC company.",
-                name: "Jennifer L.",
-                location: "Marietta, GA",
-                saved: "$650 saved",
-              },
-              {
-                quote: "Comfort walked me through everything like a real advisor. I finally understand SEER ratings and why our upstairs was always 5 degrees hotter. New system is a game changer.",
-                name: "David & Sarah R.",
-                location: "Decatur, GA",
-                saved: "$500 saved",
-              },
-            ].map((t) => (
-              <motion.div
-                key={t.name}
-                variants={fadeUp}
-                className="bg-background rounded-2xl p-8 shadow-card flex flex-col"
-              >
-                <div className="flex gap-1 mb-4">
-                  {[...Array(5)].map((_, i) => (
-                    <svg key={i} className="w-5 h-5 text-accent" fill="currentColor" viewBox="0 0 20 20">
-                      <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
-                    </svg>
-                  ))}
-                </div>
-                <p className="text-muted-foreground text-sm leading-relaxed flex-1">"{t.quote}"</p>
-                <div className="mt-6 pt-4 border-t border-border flex items-center justify-between">
-                  <div>
-                    <p className="font-display font-bold text-foreground text-sm">{t.name}</p>
-                    <p className="text-muted-foreground text-xs">{t.location}</p>
+            Your dashboard
+          </motion.h3>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 md:gap-4">
+            {modules.map((m) => (
+              <motion.div key={m.title} variants={fadeUp}>
+                <Link
+                  to={m.to}
+                  className="group block h-full rounded-2xl border border-border bg-background shadow-card hover:shadow-card-hover hover:border-primary/30 transition-all duration-200 p-4 md:p-5"
+                >
+                  <div className="flex items-start gap-3">
+                    <div className={`w-10 h-10 rounded-xl ${m.iconBg} flex items-center justify-center flex-shrink-0`}>
+                      <m.icon className={`w-5 h-5 ${m.iconColor}`} />
+                    </div>
+                    <div className="min-w-0 flex-1">
+                      <p className="text-[11px] font-semibold uppercase tracking-wide text-primary">
+                        {m.eyebrow}
+                      </p>
+                      <h4 className="font-display font-bold text-sm md:text-base text-foreground mt-0.5 leading-snug">
+                        {m.title}
+                      </h4>
+                      <p className="text-xs md:text-sm text-muted-foreground mt-1.5 leading-relaxed">
+                        {m.body}
+                      </p>
+                    </div>
+                    <ArrowRight className="w-4 h-4 text-muted-foreground/60 group-hover:text-primary group-hover:translate-x-0.5 transition-all flex-shrink-0 mt-1" />
                   </div>
-                  <span className="text-xs font-semibold text-primary bg-primary/10 px-2.5 py-1 rounded-full">{t.saved}</span>
-                </div>
+                </Link>
               </motion.div>
             ))}
           </div>
         </motion.div>
-      </Section>
+      </section>
 
-      {/* Trust */}
-      <Section className="py-20">
-        <div className="container text-center max-w-2xl">
-          <h2 className="text-2xl md:text-3xl font-display font-bold text-foreground mb-4">
-            Trusted by Atlanta Homeowners
+      {/* Final CTA */}
+      <section className="bg-surface border-t border-border">
+        <div className="container max-w-2xl py-10 md:py-14 text-center">
+          <h2 className="font-display font-extrabold text-xl md:text-2xl text-foreground">
+            Ready to see your score?
           </h2>
-          <p className="text-muted-foreground leading-relaxed">
-            Our AI-powered platform combines 15 years of HVAC expertise with cutting-edge technology to deliver personalized comfort recommendations — no pressure, no gimmicks.
+          <p className="mt-2 text-sm text-muted-foreground">
+            It only takes 60 seconds — no commitment, no pressure.
           </p>
-          <div className="mt-8">
-            <Button asChild variant="outline" size="lg">
-              <Link to="/education">Learn About HVAC Systems</Link>
-            </Button>
+          <Button
+            asChild
+            size="xl"
+            className="mt-6 w-full sm:w-auto bg-primary hover:bg-primary/90 text-primary-foreground font-display font-bold tracking-wide"
+          >
+            <Link to="/quiz">BEGIN HVAC HEALTH ASSESSMENT HERE</Link>
+          </Button>
+
+          <div className="mt-8 flex flex-col sm:flex-row items-center justify-center gap-4 sm:gap-8">
+            {trustItems.map((item) => (
+              <div key={item.text} className="flex items-center gap-2 text-muted-foreground text-xs md:text-sm">
+                <item.icon className="w-4 h-4 text-primary" />
+                <span>{item.text}</span>
+              </div>
+            ))}
           </div>
         </div>
-      </Section>
-
-      {/* Bottom CTA */}
-      <Section className="py-16 bg-surface">
-        <div className="container text-center">
-          <h2 className="text-2xl md:text-3xl font-display font-bold text-foreground mb-4">
-            Ready to Take Control of Your Comfort?
-          </h2>
-          <p className="text-muted-foreground mb-8 max-w-lg mx-auto">
-            It only takes 60 seconds. No commitment, no pressure — just smarter home comfort.
-          </p>
-          <Button asChild variant="hero" size="xl">
-            <Link to="/quiz">Take the Free 60-Second Assessment</Link>
-          </Button>
-        </div>
-      </Section>
+      </section>
     </Layout>
   );
 }
