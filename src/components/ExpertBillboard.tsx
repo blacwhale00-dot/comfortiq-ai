@@ -8,7 +8,7 @@ import {
   DialogTitle,
   DialogDescription,
 } from "@/components/ui/dialog";
-import willMacon from "@/assets/will-macon.png";
+import guzzlerLogo from "@/assets/guzzler-score-logo.png";
 
 const trustBadges = [
   { icon: MapPin, label: "Metro Atlanta" },
@@ -28,14 +28,16 @@ export default function ExpertBillboard() {
         className="container py-6"
       >
         <div className="max-w-2xl mx-auto bg-background rounded-2xl border border-border shadow-card overflow-hidden">
-          {/* Banner Image */}
-          <div className="w-full h-[200px] overflow-hidden">
+          {/* Guzzler Score Logo */}
+          <div className="w-full bg-surface flex items-center justify-center p-6">
             <img
-              src={willMacon}
-              alt="Will Macon — Metro Atlanta HVAC Architect"
-              className="w-full h-full object-cover object-center"
+              src={guzzlerLogo}
+              alt="The Guzzler Score — HVAC Efficiency Rating"
+              className="max-h-[180px] w-auto object-contain"
             />
           </div>
+
+
 
           <div className="p-6 sm:p-8">
             <div className="text-center sm:text-left">
@@ -90,10 +92,11 @@ export default function ExpertBillboard() {
           </DialogHeader>
           <div className="flex items-center gap-4 mt-2">
             <img
-              src={willMacon}
-              alt="Will Macon"
-              className="w-16 h-16 rounded-full object-cover object-top border-2 border-primary/20"
+              src={guzzlerLogo}
+              alt="The Guzzler Score"
+              className="w-16 h-16 rounded-full object-contain bg-surface border-2 border-primary/20 p-1"
             />
+
             <div>
               <p className="font-display font-bold text-foreground">Will Macon</p>
               <p className="text-xs text-muted-foreground">
