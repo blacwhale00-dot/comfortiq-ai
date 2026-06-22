@@ -4,7 +4,11 @@ import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import type { TablesInsert, TablesUpdate } from "@/integrations/supabase/types";
 import { AnimatePresence, motion } from "framer-motion";
-import { quizQuestions, getMirrorResponse } from "@/components/quiz/conciergeConfig";
+import {
+  quizQuestions,
+  getMirrorResponse,
+  bridgedAnswersForScoring,
+} from "@/components/quiz/conciergeConfig";
 import { getCoraReaction } from "@/components/quiz/coraReactions";
 import ConciergeQuestion from "@/components/quiz/ConciergeQuestion";
 import ConciergeMessage from "@/components/quiz/ConciergeMessage";
@@ -16,31 +20,48 @@ import { calculateGuzzlerScore } from "@/lib/guzzler-score";
 
 type Phase = "intro" | "question" | "mirror" | "gate" | "analyzing" | "results";
 
-// Helper: build the pain-score payload from raw answers.
+// Look up the 0–1 weight of the option the user picked for a given question id.
+function weightFor(answers: Record<string, string | number>, questionId: string): number | null {
+  const q = quizQuestions.find((qq) => qq.id === questionId);
+  if (!q) return null;
+  const opt = q.options.find((o) => o.value === String(answers[questionId]));
+  return opt?.weight ?? null;
+}
+
+// Convert a 0–1 weight to a legacy 1–5 pain score.
+function toPain5(w: number | null): number | null {
+  if (w == null) return null;
+  return Math.max(1, Math.min(5, Math.round(w * 4) + 1));
+}
+
+// Helper: build the pain-score payload from the 12 new spec answers.
+// Maps each spec question into the legacy pain_* DB columns so the existing
+// quiz_sessions schema stays intact.
 function buildPainPayload(answers: Record<string, string | number>) {
   return {
-    pain_temperature: Number(answers.temperature) || null,
-    pain_bills: answers.bills === "high" ? 5 : answers.bills === "med" ? 3 : answers.bills === "low" ? 1 : null,
-    pain_system_age: answers.system_age === ">15" ? 5 : answers.system_age === "12-15" ? 4 : answers.system_age === "8-12" ? 3 : answers.system_age === "<8" ? 1 : null,
-    pain_emergencies: answers.emergencies === "true" ? 5 : answers.emergencies === "false" ? 1 : null,
-    pain_confusion: Number(answers.confusion) || null,
-    pain_health: answers.health === "true" ? 5 : answers.health === "false" ? 1 : null,
-    pain_trust: Number(answers.trust) || null,
-    pain_moisture: Number(answers.moisture) || null,
-    pain_financial: answers.financial === "high" ? 5 : answers.financial === "med" ? 3 : answers.financial === "low" ? 1 : null,
-    pain_confidence: Number(answers.confidence) || null,
-    residents: answers.residents === "5+" ? 5 : answers.residents === "3-4" ? 4 : Number(answers.residents) || null,
+    pain_temperature: toPain5(weightFor(answers, "comfort_rooms")),
+    pain_bills: toPain5(weightFor(answers, "bills")),
+    pain_system_age: toPain5(weightFor(answers, "system_age")),
+    pain_emergencies: toPain5(weightFor(answers, "repairs")),
+    pain_confusion: toPain5(weightFor(answers, "seer_rating")),
+    pain_health: toPain5(weightFor(answers, "noises")),
+    pain_trust: toPain5(weightFor(answers, "tune_up")),
+    pain_moisture: toPain5(weightFor(answers, "humidity")),
+    pain_financial: toPain5(weightFor(answers, "repair_cost")),
+    pain_confidence: toPain5(weightFor(answers, "intent")),
+    residents: null,
   };
 }
 
-// Map system_age band to a homeowner-reported integer (years).
+// Map the new system_age band to a homeowner-reported integer (years).
 function systemAgeToYears(band: string | number | undefined): number | null {
   switch (String(band)) {
-    case "<8": return 5;
-    case "8-12": return 10;
-    case "12-15": return 13;
-    case ">15": return 18;
-    default: return null;
+    case "<5":    return 3;
+    case "5-9":   return 7;
+    case "10-14": return 12;
+    case "15-19": return 17;
+    case "20+":   return 22;
+    default:      return null;
   }
 }
 
@@ -48,13 +69,7 @@ export default function QuizPage() {
   const navigate = useNavigate();
   const [phase, setPhase] = useState<Phase>("intro");
   const [currentQ, setCurrentQ] = useState(0);
-  const [answers, setAnswers] = useState<Record<string, string | number>>(() => {
-    const defaults: Record<string, string | number> = {};
-    quizQuestions.forEach((q) => {
-      if (q.type === "slider") defaults[q.id] = 3;
-    });
-    return defaults;
-  });
+  const [answers, setAnswers] = useState<Record<string, string | number>>({});
   const [sessionId, setSessionId] = useState<string | null>(null);
   const [mirrorText, setMirrorText] = useState("");
   const [coraComment, setCoraComment] = useState("Hi! I'm Cora — I'll comment on your answers as we go. Ready when you are.");
@@ -243,11 +258,13 @@ export default function QuizPage() {
       }
     }
 
+    // Bridge the 12 new spec answers into the legacy shape the scoring math expects.
+    const bridged = bridgedAnswersForScoring(answers);
     const result = calculateGuzzlerScore({
-      bills: answers.bills,
-      systemAgeBand: answers.system_age,
-      emergencies: answers.emergencies,
-      temperature: answers.temperature,
+      bills: bridged.bills,
+      systemAgeBand: bridged.system_age,
+      emergencies: bridged.emergencies,
+      temperature: bridged.temperature,
       yearBuilt,
       silenceYears,
       lastPermitDate,
@@ -302,7 +319,7 @@ export default function QuizPage() {
               className="space-y-6"
             >
               <ConciergeMessage
-                message="Hi! I'm Comfort 👋 — your AI home advisor, trained by a 15-year HVAC expert. I'm going to ask you 11 quick questions to understand your home's comfort needs. It takes about 2 minutes. Ready?"
+                message="Hi! I'm Cora 👋 — your AI home advisor, trained by a 15-year HVAC expert. I'll ask you 12 quick questions to understand your home's comfort needs. Takes about 2 minutes. Ready?"
               />
               <motion.button
                 initial={{ opacity: 0 }}
