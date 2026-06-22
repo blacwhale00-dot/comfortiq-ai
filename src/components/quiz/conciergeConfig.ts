@@ -331,3 +331,14 @@ export function bridgedAnswersForScoring(
     emergencies: hadEmergency ? "true" : "false",
   };
 }
+
+// Legacy type kept so older components (ReadinessProfile.tsx) still compile.
+// The current quiz flow uses GuzzlerResults instead of this profile shape.
+export interface ReadinessProfile {
+  title: string;
+  subtitle: string;
+  score: number;
+  bullets: string[];
+  color: "teal" | "amber" | "red";
+}
+
