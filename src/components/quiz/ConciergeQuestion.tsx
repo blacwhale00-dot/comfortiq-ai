@@ -4,8 +4,9 @@ import { QuizQuestion } from "./conciergeConfig";
 interface ConciergeQuestionProps {
   question: QuizQuestion;
   value: string | number;
-  onChange: (val: string | number) => void;
-  onNext: () => void;
+  onSelect: (val: string | number) => void;
+  /** Once Cora's response is showing, lock the options so taps don't reset the flow. */
+  locked?: boolean;
 }
 
 const slideVariants = {
@@ -14,11 +15,12 @@ const slideVariants = {
   exit: { opacity: 0, x: -60 },
 };
 
-export default function ConciergeQuestion({ question, value, onChange, onNext }: ConciergeQuestionProps) {
+export default function ConciergeQuestion({ question, value, onSelect, locked }: ConciergeQuestionProps) {
   const handleChoice = (val: string) => {
-    onChange(val);
-    // Auto-advance after a brief pause so the user can see their selection register.
-    setTimeout(onNext, 400);
+    if (locked) return;
+    // Record the selection. The parent waits ~1.5-2s, then fades in Cora's
+    // answer-specific response with a Next button — no auto-advance here.
+    onSelect(val);
   };
 
   return (
@@ -45,11 +47,11 @@ export default function ConciergeQuestion({ question, value, onChange, onNext }:
           <button
             key={opt.value}
             onClick={() => handleChoice(opt.value)}
-            className={`w-full flex items-center gap-3 px-5 py-4 rounded-xl border-2 text-left transition-all duration-200 ${
-              String(value) === opt.value
+            disabled={locked && String(value) !== opt.value}
+            className={`w-full flex items-center gap-3 px-5 py-4 rounded-xl border-2 text-left transition-all duration-200 ${String(value) === opt.value
                 ? "border-primary bg-primary/5 shadow-card"
                 : "border-border bg-background hover:border-primary/30 hover:bg-surface"
-            }`}
+              } ${locked ? "cursor-default" : ""}`}
           >
             {opt.emoji && <span className="text-xl">{opt.emoji}</span>}
             <span className="text-sm font-medium text-foreground">{opt.label}</span>

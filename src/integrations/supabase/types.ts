@@ -122,6 +122,44 @@ export type Database = {
           },
         ]
       }
+      quiz_answers: {
+        Row: {
+          answer_text: string | null
+          answer_value: number | null
+          created_at: string
+          id: string
+          question_id: string | null
+          question_number: number
+          quiz_id: string
+        }
+        Insert: {
+          answer_text?: string | null
+          answer_value?: number | null
+          created_at?: string
+          id?: string
+          question_id?: string | null
+          question_number: number
+          quiz_id: string
+        }
+        Update: {
+          answer_text?: string | null
+          answer_value?: number | null
+          created_at?: string
+          id?: string
+          question_id?: string | null
+          question_number?: number
+          quiz_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "quiz_answers_quiz_id_fkey"
+            columns: ["quiz_id"]
+            isOneToOne: false
+            referencedRelation: "quiz_sessions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       quiz_sessions: {
         Row: {
           age: number | null

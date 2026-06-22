@@ -16,12 +16,12 @@ export default function ConciergeMessage({ message, isTyping }: ConciergeMessage
     >
       <img
         src={comfortAvatar}
-        alt="Comfort AI"
+        alt="Cora"
         className="w-10 h-10 rounded-full object-cover border-2 border-primary/20 flex-shrink-0 mt-0.5"
       />
       <div className="flex-1 rounded-2xl rounded-tl-md bg-primary/5 border border-primary/15 px-4 py-3">
         <p className="text-xs font-semibold text-primary mb-1">
-          Comfort <span className="text-muted-foreground font-normal">— Your AI Home Advisor</span>
+          Cora <span className="text-muted-foreground font-normal">— Your Comfort IQ Guide</span>
         </p>
         {isTyping ? (
           <div className="flex gap-1.5 py-2">

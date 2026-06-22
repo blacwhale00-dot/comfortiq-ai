@@ -18,7 +18,16 @@ import AnalyzingTransition from "@/components/quiz/AnalyzingTransition";
 import GuzzlerResults, { GuzzlerResultsData } from "@/components/quiz/GuzzlerResults";
 import { calculateGuzzlerScore } from "@/lib/guzzler-score";
 
-type Phase = "intro" | "question" | "mirror" | "gate" | "analyzing" | "results";
+type Phase = "intro" | "question" | "gate" | "analyzing" | "results";
+
+// Verbatim scripts from the 12-questions spec (Tanzeel doc, 2026-06-22).
+const OPENING_SCRIPT =
+  "Hey there! I'm Cora — your Comfort IQ guide. In the next few minutes, I'm going to help you understand exactly what your HVAC system is costing you. Not in some vague 'maybe you should replace it' way — in actual numbers. Ready? Let's go.";
+const CLOSING_SCRIPT =
+  "Alright — I've got everything I need for your preliminary Guzzler Score. Remember: this is based on what you told me. Your actual equipment might tell a different story — and honestly, it usually does. Let's see where you land…";
+
+// How long Cora "thinks" after a selection before her response fades in.
+const CORA_RESPONSE_DELAY_MS = 1750; // spec: 1.5–2 seconds
 
 // Look up the 0–1 weight of the option the user picked for a given question id.
 function weightFor(answers: Record<string, string | number>, questionId: string): number | null {
@@ -54,14 +63,15 @@ function buildPainPayload(answers: Record<string, string | number>) {
 }
 
 // Map the new system_age band to a homeowner-reported integer (years).
+// Bands must match the option `value`s in conciergeConfig.ts.
 function systemAgeToYears(band: string | number | undefined): number | null {
   switch (String(band)) {
-    case "<5":    return 3;
-    case "5-9":   return 7;
+    case "0-5": return 3;
+    case "6-9": return 7;
     case "10-14": return 12;
     case "15-19": return 17;
-    case "20+":   return 22;
-    default:      return null;
+    case "20+": return 22;
+    default: return null;
   }
 }
 
@@ -76,73 +86,128 @@ export default function QuizPage() {
   const [gateSubmitting, setGateSubmitting] = useState(false);
   const [guzzlerData, setGuzzlerData] = useState<GuzzlerResultsData | null>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
+  const responseTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const totalQ = quizQuestions.length;
-  const progress = phase === "results" || phase === "analyzing"
-    ? 100
-    : phase === "gate"
-    ? 95
-    : phase === "intro"
-    ? 0
-    : ((currentQ + (phase === "mirror" ? 1 : 0)) / totalQ) * 100;
+  const isLastQuestion = currentQ === totalQ - 1;
+  const progress =
+    phase === "results" || phase === "analyzing"
+      ? 100
+      : phase === "gate"
+        ? 95
+        : phase === "intro"
+          ? 0
+          : ((currentQ + (mirrorText ? 1 : 0)) / totalQ) * 100;
 
-  // Save partial progress to DB
-  const saveSession = useCallback(async (final = false) => {
-    const data: TablesUpdate<"quiz_sessions"> = {
-      ...buildPainPayload(answers),
-      funnel_status: final ? "quiz_complete" : `question_${currentQ + 1}`,
-    };
+  // Clear any pending Cora-response timer on unmount.
+  useEffect(() => () => {
+    if (responseTimer.current) clearTimeout(responseTimer.current);
+  }, []);
 
-    try {
-      if (sessionId) {
-        await supabase.from("quiz_sessions").update(data).eq("id", sessionId);
-      } else {
-        const { data: inserted } = await supabase.from("quiz_sessions").insert(data).select("id").single();
-        if (inserted) setSessionId(inserted.id);
+  // Save partial progress to DB. Accepts an explicit answers snapshot so we
+  // never persist a stale closure value right after a selection.
+  const saveSession = useCallback(
+    async (final = false, answersArg?: Record<string, string | number>): Promise<string | null> => {
+      const snapshot = answersArg ?? answers;
+      const data: TablesUpdate<"quiz_sessions"> = {
+        ...buildPainPayload(snapshot),
+        funnel_status: final ? "quiz_complete" : `question_${currentQ + 1}`,
+      };
+
+      try {
+        if (sessionId) {
+          await supabase.from("quiz_sessions").update(data).eq("id", sessionId);
+          return sessionId;
+        }
+        const { data: inserted } = await supabase
+          .from("quiz_sessions")
+          .insert(data)
+          .select("id")
+          .single();
+        if (inserted) {
+          setSessionId(inserted.id);
+          return inserted.id;
+        }
+      } catch (err) {
+        console.error("Failed to save:", err);
       }
-    } catch (err) {
-      console.error("Failed to save:", err);
-    }
-  }, [answers, currentQ, sessionId]);
+      return sessionId;
+    },
+    [answers, currentQ, sessionId],
+  );
+
+  // Persist a single answer (text + 0–1 value) to quiz_answers the moment it's
+  // picked — no bulk submit, so an abandoned quiz still keeps every answer.
+  const saveAnswer = useCallback(
+    async (quizId: string, questionId: string, value: string | number) => {
+      const idx = quizQuestions.findIndex((qq) => qq.id === questionId);
+      if (idx === -1) return;
+      const opt = quizQuestions[idx].options.find((o) => o.value === String(value));
+      try {
+        await supabase.from("quiz_answers").upsert(
+          {
+            quiz_id: quizId,
+            question_number: idx + 1,
+            question_id: questionId,
+            answer_value: opt?.weight ?? 0,
+            answer_text: opt?.label ?? String(value),
+          },
+          { onConflict: "quiz_id,question_number" },
+        );
+      } catch (err) {
+        console.error("Failed to save answer:", err);
+      }
+    },
+    [],
+  );
 
   const startQuiz = () => {
     setPhase("question");
     setCoraComment("Let's start simple. I'll react as you answer.");
   };
 
-  const handleAnswer = () => {
+  // User picks an option. Store it immediately, then wait 1.5–2s before
+  // fading in Cora's answer-specific response (with the Next button).
+  const handleSelect = (val: string | number) => {
     const q = quizQuestions[currentQ];
-    const val = answers[q.id];
-    setMirrorText(getMirrorResponse(q.id, val ?? 3));
-    const reaction = getCoraReaction(q.id, val ?? 3);
+    const next = { ...answers, [q.id]: val };
+    setAnswers(next);
+
+    // Ensure the session row exists, then persist this single answer immediately.
+    void (async () => {
+      const id = await saveSession(false, next);
+      if (id) await saveAnswer(id, q.id, val);
+    })();
+
+    // Floating-bubble nudge reacts instantly; the in-flow mirror waits.
+    const reaction = getCoraReaction(q.id, val);
     if (reaction) setCoraComment(reaction);
-    setPhase("mirror");
-    saveSession();
+
+    setMirrorText("");
+    if (responseTimer.current) clearTimeout(responseTimer.current);
+    responseTimer.current = setTimeout(() => {
+      setMirrorText(getMirrorResponse(q.id, val));
+    }, CORA_RESPONSE_DELAY_MS);
   };
 
-  useEffect(() => {
-    if (phase === "mirror") {
-      const timer = setTimeout(() => {
-        if (currentQ < totalQ - 1) {
-          setCurrentQ((c) => c + 1);
-          setPhase("question");
-        } else {
-          setPhase("gate");
-          setCoraComment("Almost there. Add your address so I can pull your County records.");
-        }
-      }, 2500);
-      return () => clearTimeout(timer);
+  // User taps Next after reading Cora's response.
+  const handleNext = () => {
+    if (responseTimer.current) clearTimeout(responseTimer.current);
+    setMirrorText("");
+
+    if (!isLastQuestion) {
+      setCurrentQ((c) => c + 1);
+      return;
     }
-  }, [phase, currentQ, totalQ]);
+
+    // After Q12: closing script, then the address gate.
+    setCoraComment(CLOSING_SCRIPT);
+    setPhase("gate");
+  };
 
   useEffect(() => {
     scrollRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
-  }, [phase, currentQ]);
-
-  const updateAnswer = (val: string | number) => {
-    const q = quizQuestions[currentQ];
-    setAnswers((a) => ({ ...a, [q.id]: val }));
-  };
+  }, [phase, currentQ, mirrorText]);
 
   // Create or update the property_intelligence record linked to this session.
   const linkPropertyIntelligence = async (
@@ -258,7 +323,9 @@ export default function QuizPage() {
       }
     }
 
-    // Bridge the 12 new spec answers into the legacy shape the scoring math expects.
+    // Bridge the 12 spec answers into the legacy shape the scoring math expects,
+    // then score in TypeScript. The UI only collects answers — the math lives in
+    // calculateGuzzlerScore (src/lib/guzzler-score.ts).
     const bridged = bridgedAnswersForScoring(answers);
     const result = calculateGuzzlerScore({
       bills: bridged.bills,
@@ -288,12 +355,12 @@ export default function QuizPage() {
               {phase === "intro"
                 ? "Welcome"
                 : phase === "gate"
-                ? "Almost there!"
-                : phase === "analyzing"
-                ? "Cross-checking records"
-                : phase === "results"
-                ? "Complete"
-                : `Question ${currentQ + 1} of ${totalQ}`}
+                  ? "Almost there!"
+                  : phase === "analyzing"
+                    ? "Cross-checking records"
+                    : phase === "results"
+                      ? "Complete"
+                      : `Question ${currentQ + 1} of ${totalQ}`}
             </p>
             <p className="text-xs font-medium text-primary">{Math.round(progress)}%</p>
           </div>
@@ -318,9 +385,7 @@ export default function QuizPage() {
               transition={{ duration: 0.4 }}
               className="space-y-6"
             >
-              <ConciergeMessage
-                message="Hi! I'm Cora 👋 — your AI home advisor, trained by a 15-year HVAC expert. I'll ask you 12 quick questions to understand your home's comfort needs. Takes about 2 minutes. Ready?"
-              />
+              <ConciergeMessage message={OPENING_SCRIPT} />
               <motion.button
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
@@ -333,7 +398,7 @@ export default function QuizPage() {
             </motion.div>
           )}
 
-          {/* Question */}
+          {/* Question + Cora's answer-specific response */}
           {phase === "question" && (
             <motion.div
               key={`q-${currentQ}`}
@@ -346,28 +411,43 @@ export default function QuizPage() {
               <ConciergeQuestion
                 question={quizQuestions[currentQ]}
                 value={answers[quizQuestions[currentQ].id] ?? ""}
-                onChange={updateAnswer}
-                onNext={handleAnswer}
+                onSelect={handleSelect}
+                locked={!!mirrorText}
               />
+
+              {mirrorText && (
+                <motion.div
+                  key={`mirror-${currentQ}`}
+                  initial={{ opacity: 0, y: 12 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ duration: 0.4, ease: "easeOut" }}
+                  className="space-y-4 pt-2"
+                >
+                  <ConciergeMessage message={mirrorText} />
+                  <button
+                    onClick={handleNext}
+                    className="w-full py-4 rounded-xl gradient-teal text-primary-foreground font-display font-bold text-base hover:opacity-90 transition-opacity shadow-elevated"
+                  >
+                    {isLastQuestion ? "Continue →" : "Next →"}
+                  </button>
+                </motion.div>
+              )}
             </motion.div>
           )}
 
-          {/* Mirror response */}
-          {phase === "mirror" && (
-            <motion.div
-              key={`mirror-${currentQ}`}
-              initial={{ opacity: 0, y: 12 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -12 }}
-              transition={{ duration: 0.35 }}
-            >
-              <ConciergeMessage message={mirrorText} />
-            </motion.div>
-          )}
-
-          {/* Results Gate */}
+          {/* Results Gate (closing script, then lead capture) */}
           {phase === "gate" && (
-            <ResultsGate onSubmit={handleGateSubmit} isSubmitting={gateSubmitting} />
+            <motion.div
+              key="gate"
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -20 }}
+              transition={{ duration: 0.4 }}
+              className="space-y-6"
+            >
+              <ConciergeMessage message={CLOSING_SCRIPT} />
+              <ResultsGate onSubmit={handleGateSubmit} isSubmitting={gateSubmitting} />
+            </motion.div>
           )}
 
           {/* Analyzing transition */}
@@ -401,8 +481,8 @@ export default function QuizPage() {
           phase === "question"
             ? `Question ${currentQ + 1} of ${totalQ}`
             : phase === "analyzing"
-            ? "Cross-referencing County + Permits..."
-            : undefined
+              ? "Cross-referencing County + Permits..."
+              : undefined
         }
       />
     </Layout>
