@@ -258,11 +258,13 @@ export default function QuizPage() {
       }
     }
 
+    // Bridge the 12 new spec answers into the legacy shape the scoring math expects.
+    const bridged = bridgedAnswersForScoring(answers);
     const result = calculateGuzzlerScore({
-      bills: answers.bills,
-      systemAgeBand: answers.system_age,
-      emergencies: answers.emergencies,
-      temperature: answers.temperature,
+      bills: bridged.bills,
+      systemAgeBand: bridged.system_age,
+      emergencies: bridged.emergencies,
+      temperature: bridged.temperature,
       yearBuilt,
       silenceYears,
       lastPermitDate,
@@ -317,7 +319,7 @@ export default function QuizPage() {
               className="space-y-6"
             >
               <ConciergeMessage
-                message="Hi! I'm Comfort 👋 — your AI home advisor, trained by a 15-year HVAC expert. I'm going to ask you 11 quick questions to understand your home's comfort needs. It takes about 2 minutes. Ready?"
+                message="Hi! I'm Cora 👋 — your AI home advisor, trained by a 15-year HVAC expert. I'll ask you 12 quick questions to understand your home's comfort needs. Takes about 2 minutes. Ready?"
               />
               <motion.button
                 initial={{ opacity: 0 }}
