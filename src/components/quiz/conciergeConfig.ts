@@ -1,298 +1,333 @@
+// 12-question Homeowner HVAC Assessment.
+// Each answer carries a normalized `value` (0.00–1.00) that future scoring
+// can consume. For now, the existing Guzzler math is unchanged — see
+// QuizPage.tsx which bridges these answers into the legacy shape.
+
+export interface QuizOption {
+  value: string;       // stable code stored against the question
+  label: string;       // shown to the user
+  emoji?: string;
+  weight?: number;     // 0.00–1.00 — answer "badness" used by future scoring
+}
+
 export interface QuizQuestion {
   id: string;
   dbKey: string;
   question: string;
   subtext?: string;
-  type: "slider" | "choice" | "boolean";
-  options?: { value: string; label: string; emoji?: string }[];
-  sliderLabels?: [string, string];
-  sliderMin?: number;
-  sliderMax?: number;
+  type: "choice";
+  options: QuizOption[];
 }
 
 export const quizQuestions: QuizQuestion[] = [
-  {
-    id: "temperature",
-    dbKey: "pain_temperature",
-    question: "How often is your home too hot or too cold?",
-    subtext: "Think about those rooms that never seem right.",
-    type: "slider",
-    sliderLabels: ["Never", "Constantly"],
-    sliderMin: 1,
-    sliderMax: 5,
-  },
-  {
-    id: "bills",
-    dbKey: "pain_bills",
-    question: "Have your energy bills jumped recently?",
-    subtext: "Compare your bills from last year to this year.",
-    type: "choice",
-    options: [
-      { value: "low", label: "No real change", emoji: "✅" },
-      { value: "med", label: "Noticeable increase", emoji: "📈" },
-      { value: "high", label: "Major spike", emoji: "🔥" },
-    ],
-  },
+  // ───────────────────────── Q1: System age
   {
     id: "system_age",
     dbKey: "pain_system_age",
-    question: "How old is your current HVAC system?",
-    subtext: "Check the label on your unit if you're not sure.",
+    question: "How old is your HVAC system?",
+    subtext: "Look for the install date on the outdoor unit, or your best guess.",
     type: "choice",
     options: [
-      { value: "<8", label: "Under 8 years", emoji: "🆕" },
-      { value: "8-12", label: "8–12 years", emoji: "⏳" },
-      { value: "12-15", label: "12–15 years", emoji: "⚠️" },
-      { value: ">15", label: "Over 15 years", emoji: "🔧" },
+      { value: "<5",     label: "Under 5 years",   emoji: "🆕", weight: 0.05 },
+      { value: "5-9",    label: "5–9 years",       emoji: "✅", weight: 0.25 },
+      { value: "10-14",  label: "10–14 years",     emoji: "⏳", weight: 0.55 },
+      { value: "15-19",  label: "15–19 years",     emoji: "⚠️", weight: 0.85 },
+      { value: "20+",    label: "20+ years",       emoji: "🔧", weight: 1.00 },
+      { value: "unknown",label: "Not sure",        emoji: "🤔", weight: 0.60 },
     ],
   },
+  // ───────────────────────── Q2: Monthly bill
   {
-    id: "emergencies",
+    id: "bills",
+    dbKey: "pain_bills",
+    question: "What's your average summer electric bill?",
+    subtext: "June–September is the most honest window.",
+    type: "choice",
+    options: [
+      { value: "<150",     label: "Under $150",   emoji: "💚", weight: 0.10 },
+      { value: "150-250",  label: "$150–$250",    emoji: "🟢", weight: 0.30 },
+      { value: "250-400",  label: "$250–$400",    emoji: "🟡", weight: 0.65 },
+      { value: "400+",     label: "Over $400",    emoji: "🔴", weight: 1.00 },
+      { value: "untracked",label: "I don't track it", emoji: "🤷", weight: 0.50 },
+    ],
+  },
+  // ───────────────────────── Q3: Repair frequency
+  {
+    id: "repairs",
     dbKey: "pain_emergencies",
-    question: "How many breakdowns have you had in the last 2 years?",
-    subtext: "Include any emergency repair calls.",
-    type: "boolean",
+    question: "How many HVAC repairs in the last 2 years?",
+    subtext: "Not counting filter changes or tune-ups.",
+    type: "choice",
     options: [
-      { value: "false", label: "None", emoji: "👍" },
-      { value: "true", label: "At least one", emoji: "🚨" },
+      { value: "0",   label: "None",          emoji: "👍", weight: 0.00 },
+      { value: "1",   label: "Just one",      emoji: "🔧", weight: 0.25 },
+      { value: "2-3", label: "2–3 repairs",   emoji: "⚠️", weight: 0.60 },
+      { value: "4-5", label: "4–5 repairs",   emoji: "🚨", weight: 0.85 },
+      { value: "6+",  label: "6 or more",     emoji: "🆘", weight: 1.00 },
     ],
   },
+  // ───────────────────────── Q4: Repair spend
   {
-    id: "confusion",
-    dbKey: "pain_confusion",
-    question: "Is it clear to you whether to repair or replace?",
-    subtext: "No judgment — most homeowners feel unsure here.",
-    type: "slider",
-    sliderLabels: ["Very clear", "Totally lost"],
-    sliderMin: 1,
-    sliderMax: 5,
-  },
-  {
-    id: "health",
-    dbKey: "pain_health",
-    question: "Any allergies or breathing issues in your home?",
-    subtext: "This includes dust, asthma, or stuffy air.",
-    type: "boolean",
+    id: "repair_cost",
+    dbKey: "repair_cost",
+    question: "What have those repairs cost you in total?",
+    subtext: "Combined invoices over the last 2 years.",
+    type: "choice",
     options: [
-      { value: "false", label: "No issues", emoji: "😊" },
-      { value: "true", label: "Yes, we struggle with this", emoji: "🤧" },
+      { value: "<200",      label: "Under $200",      emoji: "💵", weight: 0.05 },
+      { value: "200-500",   label: "$200–$500",       emoji: "💰", weight: 0.30 },
+      { value: "500-1000",  label: "$500–$1,000",     emoji: "⚠️", weight: 0.55 },
+      { value: "1000-2500", label: "$1,000–$2,500",   emoji: "🚨", weight: 0.80 },
+      { value: "2500+",     label: "Over $2,500",     emoji: "🔥", weight: 1.00 },
     ],
   },
+  // ───────────────────────── Q5: Comfort fail (rooms)
   {
-    id: "trust",
-    dbKey: "pain_trust",
-    question: "How confusing has dealing with HVAC contractors been?",
-    subtext: "Think about past quotes, upsells, or unclear explanations.",
-    type: "slider",
-    sliderLabels: ["Always clear", "Never trust them"],
-    sliderMin: 1,
-    sliderMax: 5,
+    id: "comfort_rooms",
+    dbKey: "pain_temperature",
+    question: "How many rooms feel too hot or too cold?",
+    subtext: "Rooms that just never feel right.",
+    type: "choice",
+    options: [
+      { value: "0",  label: "None — it's even",     emoji: "✅", weight: 0.00 },
+      { value: "1",  label: "1 room",               emoji: "🙂", weight: 0.25 },
+      { value: "2",  label: "2 rooms",              emoji: "😐", weight: 0.50 },
+      { value: "3",  label: "3 rooms",              emoji: "😣", weight: 0.75 },
+      { value: "4+", label: "4 or more rooms",      emoji: "🥵", weight: 1.00 },
+    ],
   },
+  // ───────────────────────── Q6: Humidity
   {
-    id: "moisture",
+    id: "humidity",
     dbKey: "pain_moisture",
-    question: "Do you notice musty smells or moisture in your home?",
-    subtext: "Basements, crawl spaces, or certain rooms.",
-    type: "slider",
-    sliderLabels: ["Never", "Always"],
-    sliderMin: 1,
-    sliderMax: 5,
-  },
-  {
-    id: "financial",
-    dbKey: "pain_financial",
-    question: "How stressful is the expense of HVAC for your household?",
-    subtext: "Be honest — this helps us find the right budget path.",
+    question: "How does the air feel inside your home?",
+    subtext: "Especially in summer.",
     type: "choice",
     options: [
-      { value: "low", label: "We're prepared", emoji: "💪" },
-      { value: "med", label: "It's a stretch", emoji: "😬" },
-      { value: "high", label: "Crisis mode", emoji: "😰" },
+      { value: "dry",        label: "Dry / static-y",       emoji: "🌵", weight: 0.55 },
+      { value: "comfortable",label: "Comfortable",          emoji: "😌", weight: 0.10 },
+      { value: "muggy",      label: "Muggy or sticky",      emoji: "💧", weight: 0.70 },
+      { value: "very_humid", label: "Very humid / musty",   emoji: "🌫️", weight: 1.00 },
+      { value: "unknown",    label: "Haven't noticed",      emoji: "🤔", weight: 0.40 },
     ],
   },
+  // ───────────────────────── Q7: Noises / smells
   {
-    id: "confidence",
-    dbKey: "pain_confidence",
-    question: "How confident are you about choosing the right system?",
-    subtext: "From 'I've done my research' to 'I have no idea where to start.'",
-    type: "slider",
-    sliderLabels: ["Very confident", "No idea"],
-    sliderMin: 1,
-    sliderMax: 5,
-  },
-  {
-    id: "residents",
-    dbKey: "residents",
-    question: "How many people live in your home?",
-    subtext: "This helps us size the system for your real load.",
+    id: "noises",
+    dbKey: "pain_health",
+    question: "Any unusual noises or smells from your system?",
+    subtext: "Banging, hissing, burning, musty — anything off.",
     type: "choice",
     options: [
-      { value: "1", label: "Just me", emoji: "🧍" },
-      { value: "2", label: "2 people", emoji: "👫" },
-      { value: "3-4", label: "3–4 people", emoji: "👨‍👩‍👧" },
-      { value: "5+", label: "5 or more", emoji: "👨‍👩‍👧‍👦" },
+      { value: "none",         label: "None — it runs quiet",     emoji: "🤫", weight: 0.00 },
+      { value: "minor",        label: "Minor / occasional",       emoji: "🙂", weight: 0.30 },
+      { value: "frequent",     label: "Frequent noises",          emoji: "🔊", weight: 0.65 },
+      { value: "loud_burning", label: "Loud or burning smell",    emoji: "🔥", weight: 0.90 },
+      { value: "constant",     label: "Constant — it's bad",      emoji: "🚨", weight: 1.00 },
+    ],
+  },
+  // ───────────────────────── Q8: Short cycling
+  {
+    id: "short_cycling",
+    dbKey: "short_cycling",
+    question: "Does your system click on and off frequently?",
+    subtext: "More than a few times an hour is a red flag.",
+    type: "choice",
+    options: [
+      { value: "no",        label: "No — runs in long cycles", emoji: "✅", weight: 0.05 },
+      { value: "sometimes", label: "Sometimes",                emoji: "🤷", weight: 0.50 },
+      { value: "yes",       label: "Yes — constantly",         emoji: "🚨", weight: 1.00 },
+      { value: "unknown",   label: "Haven't paid attention",   emoji: "🤔", weight: 0.40 },
+    ],
+  },
+  // ───────────────────────── Q9: Filter cadence
+  {
+    id: "filter_freq",
+    dbKey: "filter_freq",
+    question: "How often do you change your air filter?",
+    subtext: "Be honest — most homeowners forget.",
+    type: "choice",
+    options: [
+      { value: "monthly",   label: "Every month",         emoji: "🥇", weight: 0.00 },
+      { value: "quarterly", label: "Every few months",    emoji: "👍", weight: 0.25 },
+      { value: "yearly",    label: "Maybe once a year",   emoji: "😬", weight: 0.65 },
+      { value: "rarely",    label: "Rarely",              emoji: "⚠️", weight: 0.85 },
+      { value: "never",     label: "Never have",          emoji: "🆘", weight: 1.00 },
+    ],
+  },
+  // ───────────────────────── Q10: Last tune-up
+  {
+    id: "tune_up",
+    dbKey: "tune_up",
+    question: "When was your last professional tune-up?",
+    subtext: "A real one — not just an emergency repair visit.",
+    type: "choice",
+    options: [
+      { value: "this_year", label: "Within the last year",  emoji: "✅", weight: 0.05 },
+      { value: "1-2_years", label: "1–2 years ago",         emoji: "🙂", weight: 0.40 },
+      { value: "3+_years",  label: "3+ years ago",          emoji: "⚠️", weight: 0.80 },
+      { value: "never",     label: "Never had one",         emoji: "🚨", weight: 1.00 },
+      { value: "unknown",   label: "Not sure",              emoji: "🤔", weight: 0.55 },
+    ],
+  },
+  // ───────────────────────── Q11: SEER rating
+  {
+    id: "seer_rating",
+    dbKey: "seer_rating",
+    question: "Do you know your system's SEER rating?",
+    subtext: "Modern systems are 14+. Older systems are often 10 or below.",
+    type: "choice",
+    options: [
+      { value: "16+",     label: "16 or higher",        emoji: "🌿", weight: 0.05 },
+      { value: "13-15",   label: "13–15",               emoji: "🟢", weight: 0.30 },
+      { value: "10-12",   label: "10–12",               emoji: "🟡", weight: 0.70 },
+      { value: "<10",     label: "Under 10",            emoji: "🔴", weight: 1.00 },
+      { value: "unknown", label: "No idea",             emoji: "🤔", weight: 0.60 },
+    ],
+  },
+  // ───────────────────────── Q12: Replacement intent
+  {
+    id: "intent",
+    dbKey: "intent",
+    question: "Are you considering replacing it in the next 12 months?",
+    subtext: "Even a 'maybe' is useful here.",
+    type: "choice",
+    options: [
+      { value: "yes",    label: "Yes — actively planning",  emoji: "🎯", weight: 1.00 },
+      { value: "maybe",  label: "Maybe — exploring",        emoji: "🤔", weight: 0.65 },
+      { value: "no",     label: "Not right now",            emoji: "🛑", weight: 0.20 },
+      { value: "unsure", label: "Honestly unsure",          emoji: "🤷", weight: 0.50 },
     ],
   },
 ];
 
-// Mirror responses keyed by question id + answer value
-export type MirrorKey = string;
-
+// ─────────────────────────────────────────────────────────────────
+// In-flow "mirror" response (the big concierge message after each answer)
+// ─────────────────────────────────────────────────────────────────
 export function getMirrorResponse(questionId: string, value: string | number): string {
   const v = String(value);
-
-  const mirrors: Record<string, Record<string, string> | ((v: string) => string)> = {
-    temperature: (val) => {
-      const n = Number(val);
-      if (n <= 2) return "Good — a consistent home is the baseline of comfort. Let's see how your bills are holding up.";
-      if (n <= 3) return "Some inconsistency is normal, but it shouldn't be the norm. Let's dig deeper.";
-      return "That's a red flag. Constant temperature swings usually point to a system that's struggling. Let's look at your energy costs next.";
+  const map: Record<string, Record<string, string>> = {
+    system_age: {
+      "<5":     "A young system. That's a strong starting point — let's see how the rest of the picture lines up.",
+      "5-9":    "Mid-life territory. Performance can quietly slip here without you noticing.",
+      "10-14":  "You're entering the replacement-conversation window. Many Atlanta systems start failing around this age.",
+      "15-19":  "15+ years is the danger zone. I'll cross-check public permit records to see how hard it's been working.",
+      "20+":    "20+ years is rare — and usually means you're throwing good money at a system at the end of its life.",
+      "unknown":"No worries. The County permit record will tell us a lot of what we need to know.",
     },
     bills: {
-      low: "That's great news. Steady bills mean your system is at least running efficiently for now. Let's check on its age.",
-      med: "A noticeable bump is worth watching. It could be rate increases — or your system working harder than it should.",
-      high: "I suspected as much. That jump usually indicates a 'SEER Gap' where you're overpaying for wasted energy. Let's see how the age of your system factors in next.",
+      "<150":     "That's an efficient bill for an Atlanta summer. Good baseline.",
+      "150-250":  "Within the normal Atlanta range — there's usually still room to find savings.",
+      "250-400":  "On the high side. Your system is likely working harder than it should.",
+      "400+":     "That sounds a bit high for a house of your size — let's see if we can find out why.",
+      "untracked":"Totally fair. We'll estimate it from your home's profile.",
     },
-    system_age: {
-      "<8": "You're in great shape age-wise. Modern systems have a lot of life left. Let's see if anything else needs attention.",
-      "8-12": "You're in the mid-life zone. Performance can start slipping here. Let's check for other warning signs.",
-      "12-15": "Getting into the replacement conversation window. Many systems start showing their age around here.",
-      ">15": "You're in the 'Nursing it along' zone. It's common in Atlanta, but we need to see if you're throwing good money after bad. Let's look at your reliability next.",
+    repairs: {
+      "0":   "No repairs is a good sign of reliability. Let's keep digging.",
+      "1":   "One repair in two years is normal wear and tear.",
+      "2-3": "2–3 repairs is the pattern where the math starts favoring replacement.",
+      "4-5": "That's a clear pattern — the system is telling you something.",
+      "6+":  "6+ repairs means you're past the point of nursing it along.",
     },
-    emergencies: {
-      false: "No breakdowns is a good sign. Let's see if there's any confusion about your system's future.",
-      true: "Emergency calls are stressful and expensive. That's a pattern worth addressing before the next one hits.",
+    repair_cost: {
+      "<200":      "Minor money so far. The system is holding up.",
+      "200-500":   "Manageable, but worth watching.",
+      "500-1000":  "That money would be a meaningful down payment on a real fix.",
+      "1000-2500": "You've spent serious money keeping it alive — let's see if that's still the right move.",
+      "2500+":     "$2,500+ in repairs is usually past the break-even point for replacement.",
     },
-    confusion: (val) => {
-      const n = Number(val);
-      if (n <= 2) return "You've got a clear head about this — that's rare and valuable. Let's keep going.";
-      if (n <= 3) return "Some uncertainty is completely normal. That's exactly why we're here.";
-      return "You're not alone. Most homeowners feel lost here. That's what this assessment is designed to fix.";
+    comfort_rooms: {
+      "0":  "Even comfort is a great baseline — most homes don't have that.",
+      "1":  "One off room is often a balancing issue, not the whole system.",
+      "2":  "Two uncomfortable rooms usually means ductwork or sizing.",
+      "3":  "Three rooms suggests the system isn't keeping up with the home.",
+      "4+": "When most of the house is off, the system itself is the bottleneck.",
     },
-    health: {
-      false: "That's one less thing to worry about. Let's move on to your contractor experience.",
-      true: "Air quality impacts health more than most people realize. We'll factor this into your recommendation — it matters.",
+    humidity: {
+      "dry":        "Dry air is a comfort and a health drag — fixable with the right setup.",
+      "comfortable":"Good — humidity is one of the biggest hidden comfort factors.",
+      "muggy":      "Muggy air means the system is cooling but not dehumidifying. That's a sizing or age signal.",
+      "very_humid": "Persistent humidity is serious — it impacts air, health, and your home's structure.",
+      "unknown":    "Most people don't notice until it's bad. We'll factor it in.",
     },
-    trust: (val) => {
-      const n = Number(val);
-      if (n <= 2) return "You've found good people — that's half the battle. Let's check your home environment next.";
-      if (n <= 3) return "Mixed experiences are the industry norm, unfortunately. We're here to change that.";
-      return "I hear this a lot. The HVAC industry has a trust problem, and that's exactly why ComfortIQ exists — full transparency, no games.";
+    noises: {
+      "none":        "Quiet operation is one of the strongest signs of a healthy system.",
+      "minor":       "Minor noises are common and usually not urgent.",
+      "frequent":    "Frequent noises are early warnings — worth taking seriously.",
+      "loud_burning":"Loud or burning smells need attention now, not later.",
+      "constant":    "That's the system asking for help. Let's get ahead of it.",
     },
-    moisture: (val) => {
-      const n = Number(val);
-      if (n <= 2) return "Good — moisture control is key to a healthy home. Let's talk about budget next.";
-      if (n <= 3) return "Occasional mustiness can signal humidity issues. Worth keeping an eye on.";
-      return "Persistent moisture is a serious concern — it affects air quality, health, and even your home's structure. We'll address this.";
+    short_cycling: {
+      "no":        "Long cycles are exactly what you want.",
+      "sometimes": "Occasional cycling is okay — constant is the issue.",
+      "yes":       "Short cycling is a top efficiency killer. It also burns out components fast.",
+      "unknown":   "We'll listen for it when we do the visual audit.",
     },
-    financial: {
-      low: "Being prepared makes the whole process smoother. Let's wrap up with one final question.",
-      med: "That's honest and helpful. There are financing options that can make this much more manageable.",
-      high: "I understand. HVAC costs can feel overwhelming. The good news? The $900 credit and smart financing can change the math entirely.",
+    filter_freq: {
+      "monthly":   "You're doing the single most important thing right.",
+      "quarterly": "Every few months is solid in most homes.",
+      "yearly":    "Yearly is too long — a clogged filter chokes the whole system.",
+      "rarely":    "Rare filter changes are one of the biggest preventable causes of system death.",
+      "never":     "Never is the #1 reason systems die early. The good news: it's the easiest fix.",
     },
-    confidence: (val) => {
-      const n = Number(val);
-      if (n <= 2) return "You've done your homework. Let me put together your personalized readiness profile.";
-      if (n <= 3) return "A healthy level of caution. Your results will give you the clarity you need.";
-      return "That's exactly why you're here. In about 30 seconds, you'll have a clear picture of exactly where you stand.";
+    tune_up: {
+      "this_year": "Recent tune-up — you're ahead of most homeowners.",
+      "1-2_years": "Due for one, but not critical.",
+      "3+_years":  "3+ years without service usually means hidden wear is adding up.",
+      "never":     "No tune-ups is a major efficiency drain over time.",
+      "unknown":   "We'll check what the permit history says.",
+    },
+    seer_rating: {
+      "16+":     "16+ SEER is excellent — your system is already energy-aware.",
+      "13-15":   "13–15 is decent. There's still meaningful room to upgrade.",
+      "10-12":   "10–12 SEER means you're paying 20–30% more than you need to every month.",
+      "<10":     "Under 10 SEER is the classic 'Power Tax' situation — modern systems are 60%+ more efficient.",
+      "unknown": "We'll estimate your SEER from the system's age and serial number.",
+    },
+    intent: {
+      "yes":    "Got it — we'll fast-track your full plan and credit eligibility.",
+      "maybe":  "Smart to explore now. Knowing your number gives you leverage.",
+      "no":     "Totally fine. Even a future-planning brief is useful to have on file.",
+      "unsure": "That's exactly what this is for. Let's get you the clarity to decide.",
     },
   };
-
-  const handler = mirrors[questionId];
-  if (!handler) return "Got it. Let's keep going.";
-  if (typeof handler === "function") return handler(v);
-  return handler[v] ?? "Got it. Let's keep going.";
+  return map[questionId]?.[v] ?? "Got it. Let's keep going.";
 }
 
-// Derived variables from quiz answers
-export interface DerivedVariables {
-  comfort_score: number; // 1-5
-  bill_pain: "low" | "med" | "high";
-  age_band: "<8" | "8-12" | "12-15" | ">15";
-  emergency_history: boolean;
-  iaq_issues: boolean;
-  budget_stress: boolean;
-}
-
-export function deriveVariables(answers: Record<string, string | number>): DerivedVariables {
-  return {
-    comfort_score: Number(answers.temperature) || 3,
-    bill_pain: (answers.bills as "low" | "med" | "high") || "low",
-    age_band: (answers.system_age as DerivedVariables["age_band"]) || "<8",
-    emergency_history: answers.emergencies === "true",
-    iaq_issues: answers.health === "true",
-    budget_stress: answers.financial === "high",
+// ─────────────────────────────────────────────────────────────────
+// Bridges to the legacy answer shape consumed by guzzler-score.ts
+// (kept here so future scoring upgrades have one place to change.)
+// ─────────────────────────────────────────────────────────────────
+export function bridgedAnswersForScoring(
+  answers: Record<string, string | number>,
+): Record<string, string | number> {
+  // bills: spec values → legacy "low" | "med" | "high"
+  const billsMap: Record<string, "low" | "med" | "high"> = {
+    "<150": "low",
+    "150-250": "low",
+    "250-400": "med",
+    "400+": "high",
+    "untracked": "low",
   };
-}
-
-export interface ReadinessProfile {
-  title: string;
-  subtitle: string;
-  score: number;
-  bullets: string[];
-  color: "teal" | "amber" | "red";
-}
-
-export function calculateProfile(vars: DerivedVariables, answers: Record<string, string | number>): ReadinessProfile {
-  // Score calculation (0-100)
-  let score = 50;
-  score += (Number(answers.temperature) || 3) * 4;
-  score += vars.bill_pain === "high" ? 15 : vars.bill_pain === "med" ? 8 : 0;
-  score += vars.age_band === ">15" ? 20 : vars.age_band === "12-15" ? 12 : vars.age_band === "8-12" ? 5 : 0;
-  score += vars.emergency_history ? 10 : 0;
-  score += vars.iaq_issues ? 5 : 0;
-  score += vars.budget_stress ? 5 : 0;
-  score += (Number(answers.confidence) || 3) * 2;
-  score = Math.min(100, Math.max(15, score));
-
-  // Profile assignment
-  if (vars.comfort_score >= 4 || vars.age_band === ">15") {
-    return {
-      title: "System Survivor",
-      subtitle: "Your system is showing serious signs of strain",
-      score,
-      bullets: [
-        `Your comfort score of ${vars.comfort_score}/5 suggests daily discomfort that shouldn't be normal.`,
-        vars.age_band === ">15"
-          ? "At 15+ years, your system is well past its prime — repairs are likely costing more than they save."
-          : `With a system in the ${vars.age_band} year range, performance degradation is accelerating.`,
-        vars.emergency_history
-          ? "Your breakdown history confirms the system is unreliable."
-          : "You've avoided major breakdowns so far, but the risk increases exponentially from here.",
-      ],
-      color: "red",
-    };
-  }
-
-  if (vars.bill_pain === "high" && (vars.age_band === "<8" || vars.age_band === "8-12")) {
-    return {
-      title: "Efficiency Hunter",
-      subtitle: "Your system may be working — but it's working too hard",
-      score,
-      bullets: [
-        "Your energy bills have spiked despite having a relatively newer system — that's a SEER efficiency gap.",
-        vars.iaq_issues
-          ? "Combined with air quality concerns, your system may need optimization, not replacement."
-          : "The good news: targeted upgrades can dramatically cut your costs without a full replacement.",
-        vars.budget_stress
-          ? "We understand budget is tight. Our financing options are designed for exactly this scenario."
-          : "Smart efficiency upgrades typically pay for themselves within 2-3 years.",
-      ],
-      color: "amber",
-    };
-  }
+  // system_age: spec → legacy band
+  const ageMap: Record<string, "<8" | "8-12" | "12-15" | ">15"> = {
+    "<5":      "<8",
+    "5-9":     "8-12",
+    "10-14":   "12-15",
+    "15-19":   ">15",
+    "20+":     ">15",
+    "unknown": "8-12",
+  };
+  // comfort_rooms (0..4+) → 1..5 temperature pain
+  const tempMap: Record<string, number> = { "0": 1, "1": 2, "2": 3, "3": 4, "4+": 5 };
+  // repairs → emergencies boolean
+  const hadEmergency = answers.repairs && answers.repairs !== "0";
 
   return {
-    title: "Comfort Optimizer",
-    subtitle: "You're in decent shape — but there's room to level up",
-    score,
-    bullets: [
-      `With a comfort score of ${vars.comfort_score}/5, you have some room for improvement.`,
-      `Your ${vars.age_band} year-old system still has life, but proactive maintenance now prevents costly surprises later.`,
-      vars.iaq_issues
-        ? "Addressing your air quality concerns could transform how your home feels day-to-day."
-        : "A tune-up or efficiency audit could unlock savings you didn't know were there.",
-    ],
-    color: "teal",
+    ...answers,
+    bills: billsMap[String(answers.bills)] ?? "low",
+    system_age: ageMap[String(answers.system_age)] ?? "8-12",
+    temperature: tempMap[String(answers.comfort_rooms)] ?? 3,
+    emergencies: hadEmergency ? "true" : "false",
   };
 }
