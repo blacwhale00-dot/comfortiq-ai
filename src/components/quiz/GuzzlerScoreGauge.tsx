@@ -4,6 +4,7 @@ import { Gauge } from "lucide-react";
 interface GuzzlerScoreGaugeProps {
   score: number;
   tier: "Mild" | "Moderate" | "High" | "Severe";
+  grade?: string;
 }
 
 const TIER_STYLES: Record<GuzzlerScoreGaugeProps["tier"], { ring: string; text: string; glow: string; bg: string }> = {
@@ -33,7 +34,7 @@ const TIER_STYLES: Record<GuzzlerScoreGaugeProps["tier"], { ring: string; text: 
   },
 };
 
-export default function GuzzlerScoreGauge({ score, tier }: GuzzlerScoreGaugeProps) {
+export default function GuzzlerScoreGauge({ score, tier, grade }: GuzzlerScoreGaugeProps) {
   const style = TIER_STYLES[tier];
   const radius = 90;
   const circumference = 2 * Math.PI * radius;
@@ -49,7 +50,7 @@ export default function GuzzlerScoreGauge({ score, tier }: GuzzlerScoreGaugeProp
     >
       <div className="inline-flex items-center gap-1.5 bg-foreground/5 text-foreground/70 px-3 py-1 rounded-full text-[11px] font-semibold tracking-widest uppercase mb-5">
         <Gauge className="w-3.5 h-3.5" />
-        Home Guzzler Score
+        Your Guzzler Score
       </div>
 
       <div className="relative inline-flex items-center justify-center mb-4">
@@ -85,6 +86,16 @@ export default function GuzzlerScoreGauge({ score, tier }: GuzzlerScoreGaugeProp
           <span className="text-[11px] font-semibold tracking-widest uppercase text-muted-foreground mt-1">
             / 100
           </span>
+          {grade && (
+            <motion.span
+              initial={{ opacity: 0, scale: 0.8 }}
+              animate={{ opacity: 1, scale: 1 }}
+              transition={{ delay: 1.0, type: "spring", stiffness: 180 }}
+              className={`mt-2 inline-flex items-center px-2.5 py-0.5 rounded-full bg-foreground/5 text-xs font-display font-bold ${style.text}`}
+            >
+              Grade {grade}
+            </motion.span>
+          )}
         </div>
       </div>
 

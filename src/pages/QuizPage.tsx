@@ -1,6 +1,5 @@
 import { useState, useCallback, useEffect, useRef } from "react";
 import Layout from "@/components/Layout";
-import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import type { TablesInsert, TablesUpdate } from "@/integrations/supabase/types";
 import { AnimatePresence, motion } from "framer-motion";
@@ -15,8 +14,9 @@ import ConciergeMessage from "@/components/quiz/ConciergeMessage";
 import ResultsGate, { ResultsGateData } from "@/components/quiz/ResultsGate";
 import CoraBubble from "@/components/quiz/CoraBubble";
 import AnalyzingTransition from "@/components/quiz/AnalyzingTransition";
-import GuzzlerResults, { GuzzlerResultsData } from "@/components/quiz/GuzzlerResults";
+import GuzzlerResults, { GuzzlerRevealData } from "@/components/quiz/GuzzlerResults";
 import { calculateGuzzlerScore } from "@/lib/guzzler-score";
+import { deriveRevealData } from "@/lib/guzzler-reveal";
 
 type Phase = "intro" | "question" | "gate" | "analyzing" | "results";
 
@@ -76,7 +76,6 @@ function systemAgeToYears(band: string | number | undefined): number | null {
 }
 
 export default function QuizPage() {
-  const navigate = useNavigate();
   const [phase, setPhase] = useState<Phase>("intro");
   const [currentQ, setCurrentQ] = useState(0);
   const [answers, setAnswers] = useState<Record<string, string | number>>({});
@@ -84,7 +83,7 @@ export default function QuizPage() {
   const [mirrorText, setMirrorText] = useState("");
   const [coraComment, setCoraComment] = useState("Hi! I'm Cora — I'll comment on your answers as we go. Ready when you are.");
   const [gateSubmitting, setGateSubmitting] = useState(false);
-  const [guzzlerData, setGuzzlerData] = useState<GuzzlerResultsData | null>(null);
+  const [guzzlerData, setGuzzlerData] = useState<GuzzlerRevealData | null>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
   const responseTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
@@ -327,7 +326,7 @@ export default function QuizPage() {
     // then score in TypeScript. The UI only collects answers — the math lives in
     // calculateGuzzlerScore (src/lib/guzzler-score.ts).
     const bridged = bridgedAnswersForScoring(answers);
-    const result = calculateGuzzlerScore({
+    const base = calculateGuzzlerScore({
       bills: bridged.bills,
       systemAgeBand: bridged.system_age,
       emergencies: bridged.emergencies,
@@ -337,6 +336,10 @@ export default function QuizPage() {
       lastPermitDate,
       yearBuiltSource,
     });
+
+    // Engine owns score/tier; the reveal layer adds grade, categories, waste,
+    // drivers and the unlock-progress values from the raw 12 answers.
+    const result = deriveRevealData(base, answers);
 
     setGuzzlerData(result);
     setCoraComment(
