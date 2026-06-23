@@ -194,6 +194,7 @@ export type Database = {
           system_age: number | null
           total_discount_earned: number | null
           updated_at: string
+          upload_air_handler: string | null
           upload_bill: string | null
           upload_breaker: string | null
           upload_outdoor: string | null
@@ -233,6 +234,7 @@ export type Database = {
           system_age?: number | null
           total_discount_earned?: number | null
           updated_at?: string
+          upload_air_handler?: string | null
           upload_bill?: string | null
           upload_breaker?: string | null
           upload_outdoor?: string | null
@@ -272,6 +274,7 @@ export type Database = {
           system_age?: number | null
           total_discount_earned?: number | null
           updated_at?: string
+          upload_air_handler?: string | null
           upload_bill?: string | null
           upload_breaker?: string | null
           upload_outdoor?: string | null

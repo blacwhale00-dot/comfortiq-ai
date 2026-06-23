@@ -68,7 +68,7 @@ export default function GuzzlerResults({ data }: GuzzlerResultsProps) {
           variant="hero"
           size="xl"
           className="w-full"
-          onClick={() => navigate("/audit")}
+          onClick={() => navigate("/unlock")}
         >
           Unlock More Value
           <ArrowRight className="w-5 h-5" />

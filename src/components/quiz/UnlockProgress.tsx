@@ -5,12 +5,14 @@ interface UnlockProgressProps {
   unlocked: number;
   max: number;
   label?: string;
+  caption?: string;
 }
 
 export default function UnlockProgress({
   unlocked,
   max,
   label = "Home Efficiency Discount",
+  caption = "Quiz complete — unlock the rest with quick equipment photos.",
 }: UnlockProgressProps) {
   const pct = max > 0 ? Math.max(0, Math.min(100, (unlocked / max) * 100)) : 0;
 
@@ -41,7 +43,7 @@ export default function UnlockProgress({
 
       <p className="mt-2 text-xs text-muted-foreground flex items-center gap-1.5">
         <Lock className="w-3.5 h-3.5 text-primary" />
-        Quiz complete — unlock the rest with quick equipment photos.
+        {caption}
       </p>
     </motion.div>
   );
