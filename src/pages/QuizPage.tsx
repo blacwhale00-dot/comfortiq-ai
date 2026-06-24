@@ -337,6 +337,19 @@ export default function QuizPage() {
       yearBuiltSource,
     });
 
+    // Persist the engine's score so it can be re-displayed later without
+    // recomputing (the incomplete/expired funnel screen reads it back). Fire and
+    // forget — the reveal shouldn't wait on this write.
+    if (sessionId) {
+      void supabase
+        .from("quiz_sessions")
+        .update({ guzzler_score: base.score })
+        .eq("id", sessionId)
+        .then(({ error }) => {
+          if (error) console.error("Failed to persist guzzler score:", error);
+        });
+    }
+
     // Engine owns score/tier; the reveal layer adds grade, categories, waste,
     // drivers and the unlock-progress values from the raw 12 answers.
     const result = deriveRevealData(base, answers);

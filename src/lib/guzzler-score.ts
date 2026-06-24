@@ -49,6 +49,16 @@ function systemAgeScore(band: ScoreInputs["systemAgeBand"]): number {
   }
 }
 
+// Severity tier for a 0–100 score. The single source of truth for the
+// thresholds — used by the score reveal and any screen that re-displays a
+// persisted score (e.g. the incomplete/expired funnel).
+export function tierForScore(score: number): GuzzlerResultsData["tier"] {
+  if (score >= 80) return "Severe";
+  if (score >= 60) return "High";
+  if (score >= 35) return "Moderate";
+  return "Mild";
+}
+
 export function calculateGuzzlerScore(inputs: ScoreInputs): GuzzlerResultsData {
   const bills = billsScore(inputs.bills);
   const home = homeAgeScore(inputs.yearBuilt);
@@ -64,11 +74,7 @@ export function calculateGuzzlerScore(inputs: ScoreInputs): GuzzlerResultsData {
 
   score = Math.min(100, Math.max(0, Math.round(score)));
 
-  let tier: GuzzlerResultsData["tier"];
-  if (score >= 80) tier = "Severe";
-  else if (score >= 60) tier = "High";
-  else if (score >= 35) tier = "Moderate";
-  else tier = "Mild";
+  const tier = tierForScore(score);
 
   return {
     score,

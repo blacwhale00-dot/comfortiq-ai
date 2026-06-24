@@ -7,6 +7,7 @@ import Index from "./pages/Index.tsx";
 import QuizPage from "./pages/QuizPage.tsx";
 import UnlockPage from "./pages/UnlockPage.tsx";
 import TrophyPage from "./pages/TrophyPage.tsx";
+import IncompletePage from "./pages/IncompletePage.tsx";
 import MissionsPage from "./pages/MissionsPage.tsx";
 import VisualAuditPage from "./pages/VisualAuditPage.tsx";
 import EstimatePage from "./pages/EstimatePage.tsx";
@@ -30,6 +31,7 @@ const App = () => (
           <Route path="/quiz" element={<QuizPage />} />
           <Route path="/unlock" element={<UnlockPage />} />
           <Route path="/trophy" element={<TrophyPage />} />
+          <Route path="/incomplete" element={<IncompletePage />} />
           <Route path="/missions" element={<MissionsPage />} />
           <Route path="/audit" element={<VisualAuditPage />} />
           <Route path="/estimate" element={<EstimatePage />} />

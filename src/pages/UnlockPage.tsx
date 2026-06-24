@@ -157,17 +157,18 @@ export default function UnlockPage() {
           ))}
         </div>
 
-        {/* Skip / return — encouraging, never punitive */}
+        {/* Skip / return — encouraging, never punitive. Stopping here lands on
+            the results summary; an expert still follows up. */}
         {!progress.isComplete && (
           <div className="text-center pt-2">
             <button
-              onClick={() => navigate("/")}
+              onClick={() => navigate("/incomplete")}
               className="text-sm text-muted-foreground hover:text-foreground transition-colors underline underline-offset-4"
             >
               I'll finish this later
             </button>
             <p className="mt-1 text-xs text-muted-foreground">
-              Your progress is saved — come back anytime to unlock the rest.
+              Your progress is saved — we'll show your results and have an expert follow up.
             </p>
           </div>
         )}

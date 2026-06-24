@@ -169,6 +169,7 @@ export type Database = {
           email: string | null
           first_name: string | null
           funnel_status: string | null
+          guzzler_score: number | null
           health_conditions: boolean | null
           id: string
           last_name: string | null
@@ -209,6 +210,7 @@ export type Database = {
           email?: string | null
           first_name?: string | null
           funnel_status?: string | null
+          guzzler_score?: number | null
           health_conditions?: boolean | null
           id?: string
           last_name?: string | null
@@ -249,6 +251,7 @@ export type Database = {
           email?: string | null
           first_name?: string | null
           funnel_status?: string | null
+          guzzler_score?: number | null
           health_conditions?: boolean | null
           id?: string
           last_name?: string | null

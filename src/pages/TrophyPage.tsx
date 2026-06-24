@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
 import confetti from "canvas-confetti";
 import { Trophy, ArrowRight, Mail, CheckCircle2, Loader2 } from "lucide-react";
@@ -8,6 +9,7 @@ import { Input } from "@/components/ui/input";
 import ConciergeMessage from "@/components/quiz/ConciergeMessage";
 import UnlockProgress from "@/components/quiz/UnlockProgress";
 import { MAX_UNLOCK_VALUE } from "@/lib/guzzler-reveal";
+import { UPLOAD_SLOTS, computeUploadProgress, type UploadSlotId } from "@/lib/upload-progress";
 import { supabase } from "@/integrations/supabase/client";
 import type { TablesUpdate } from "@/integrations/supabase/types";
 
@@ -20,6 +22,7 @@ const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 type Stage = "capture" | "sending" | "confirmed";
 
 export default function TrophyPage() {
+  const navigate = useNavigate();
   const sessionId = useMemo(() => localStorage.getItem("comfortiq_session"), []);
 
   const [stage, setStage] = useState<Stage>("capture");
@@ -41,24 +44,37 @@ export default function TrophyPage() {
     return () => clearTimeout(t);
   }, []);
 
-  // Pre-fill with the email already captured at the quiz gate so we don't ask
-  // a returning homeowner to re-type what we have. They can still edit it.
+  // Guard: only GOLD (900/900) homeowners belong here. Anyone who hasn't
+  // completed all five uploads is sent to their closed-window results — the
+  // mirror of the GOLD redirect on /incomplete. Same fetch also pre-fills the
+  // email captured at the quiz gate so we don't re-ask for it.
   useEffect(() => {
     if (!sessionId) return;
     let active = true;
     void (async () => {
       const { data, error } = await supabase
         .from("quiz_sessions")
-        .select("email")
+        .select(
+          "email, upload_outdoor, upload_breaker, upload_thermostat, upload_air_handler, upload_bill",
+        )
         .eq("id", sessionId)
         .maybeSingle();
-      if (!active || error || !data?.email) return;
-      setEmail((prev) => prev || data.email!);
+      if (!active || error || !data) return;
+
+      const uploaded = new Set<UploadSlotId>(
+        UPLOAD_SLOTS.filter((s) => data[s.uploadKey]).map((s) => s.id),
+      );
+      if (!computeUploadProgress(uploaded).isComplete) {
+        navigate("/incomplete", { replace: true });
+        return;
+      }
+
+      if (data.email) setEmail((prev) => prev || data.email!);
     })();
     return () => {
       active = false;
     };
-  }, [sessionId]);
+  }, [sessionId, navigate]);
 
   const handleSend = async () => {
     setTouched(true);

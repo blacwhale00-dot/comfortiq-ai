@@ -17,8 +17,9 @@ export const MAX_UNLOCK_VALUE = 900;
 
 // Letter grade for a 0–100 severity value (higher value = more waste = worse
 // grade). Shared by the overall score and every category so the grade can never
-// contradict the Mild/Moderate/High/Severe tier.
-function gradeForScore(value: number): string {
+// contradict the Mild/Moderate/High/Severe tier. Exported so screens that
+// re-display a persisted score (e.g. the incomplete funnel) reuse the same map.
+export function gradeForScore(value: number): string {
   const v = Math.max(0, Math.min(100, value));
   if (v < 10) return "A+";
   if (v < 20) return "A";
