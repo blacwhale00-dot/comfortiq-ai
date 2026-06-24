@@ -9,10 +9,21 @@ import UnlockProgress from "./UnlockProgress";
 import GuzzlerEvidence from "./GuzzlerEvidence";
 import ConciergeMessage from "./ConciergeMessage";
 
+// The four factors the scoring engine actually weighs (src/lib/guzzler-score.ts).
+// The reveal breakdown is built from these so the bars can never disagree with
+// the headline score.
+export type FactorKey = "systemAge" | "bills" | "homeAge" | "silence";
+
+export interface FactorScore {
+  key: FactorKey;
+  severity: number; // 0–100 — this factor's contribution as a share of its max
+}
+
 // Base result produced by the scoring engine (src/lib/guzzler-score.ts).
 export interface GuzzlerResultsData {
   score: number;
   tier: "Mild" | "Moderate" | "High" | "Severe";
+  factorScores: FactorScore[];
   yearBuilt: number | null;
   yearBuiltSource: "County" | "Homeowner" | "Unknown";
   silenceYears: number | null;
@@ -20,7 +31,7 @@ export interface GuzzlerResultsData {
 }
 
 export interface CategoryScore {
-  key: "equipment" | "efficiency" | "envelope" | "maintenance";
+  key: FactorKey;
   label: string;
   score: number; // 0–100, higher = more waste
   grade: string;

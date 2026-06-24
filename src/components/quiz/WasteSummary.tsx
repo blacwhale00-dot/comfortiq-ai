@@ -1,25 +1,15 @@
 import { motion } from "framer-motion";
 import { TrendingDown } from "lucide-react";
-
-type Tier = "Mild" | "Moderate" | "High" | "Severe";
-
-// Tone scales with severity, matching the gauge palette so an efficient (Mild)
-// home doesn't read as an alarming red emergency.
-const TIER_TONE: Record<Tier, { box: string; accent: string; chip: string }> = {
-  Mild: { box: "bg-primary/5 border-primary/20", accent: "text-primary", chip: "bg-primary/10 text-primary" },
-  Moderate: { box: "bg-amber/5 border-amber/20", accent: "text-amber", chip: "bg-amber/10 text-amber" },
-  High: { box: "bg-amber/5 border-amber/20", accent: "text-amber", chip: "bg-amber/10 text-amber" },
-  Severe: { box: "bg-destructive/5 border-destructive/20", accent: "text-destructive", chip: "bg-destructive/10 text-destructive" },
-};
+import { TIER_PRESENTATION, type GuzzlerTier } from "./guzzler-tiers";
 
 interface WasteSummaryProps {
   monthlyWaste: number;
   drivers: string[];
-  tier: Tier;
+  tier: GuzzlerTier;
 }
 
 export default function WasteSummary({ monthlyWaste, drivers, tier }: WasteSummaryProps) {
-  const tone = TIER_TONE[tier];
+  const tone = TIER_PRESENTATION[tier];
 
   return (
     <motion.div
@@ -31,10 +21,10 @@ export default function WasteSummary({ monthlyWaste, drivers, tier }: WasteSumma
       {/* Monthly waste estimate */}
       <div className={`rounded-xl border p-4 text-center ${tone.box}`}>
         <p className="text-[11px] font-semibold tracking-widest uppercase text-muted-foreground mb-1 flex items-center justify-center gap-1.5">
-          <TrendingDown className={`w-3.5 h-3.5 ${tone.accent}`} />
+          <TrendingDown className={`w-3.5 h-3.5 ${tone.text}`} />
           Estimated Monthly Waste
         </p>
-        <p className={`text-4xl font-display font-extrabold tabular-nums ${tone.accent}`}>
+        <p className={`text-4xl font-display font-extrabold tabular-nums ${tone.text}`}>
           ${monthlyWaste}
           <span className="text-base font-normal text-muted-foreground">/mo</span>
         </p>

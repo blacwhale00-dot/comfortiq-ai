@@ -1,41 +1,15 @@
 import { motion } from "framer-motion";
 import { Gauge } from "lucide-react";
+import { TIER_PRESENTATION, type GuzzlerTier } from "./guzzler-tiers";
 
 interface GuzzlerScoreGaugeProps {
   score: number;
-  tier: "Mild" | "Moderate" | "High" | "Severe";
+  tier: GuzzlerTier;
   grade?: string;
 }
 
-const TIER_STYLES: Record<GuzzlerScoreGaugeProps["tier"], { ring: string; text: string; glow: string; bg: string }> = {
-  Mild: {
-    ring: "stroke-primary",
-    text: "text-primary",
-    glow: "shadow-[0_0_40px_hsl(var(--primary)/0.25)]",
-    bg: "bg-primary/5",
-  },
-  Moderate: {
-    ring: "stroke-amber",
-    text: "text-amber",
-    glow: "shadow-[0_0_40px_hsl(var(--amber)/0.3)]",
-    bg: "bg-amber/5",
-  },
-  High: {
-    ring: "stroke-amber",
-    text: "text-amber",
-    glow: "shadow-[0_0_50px_hsl(var(--amber)/0.4)]",
-    bg: "bg-amber/10",
-  },
-  Severe: {
-    ring: "stroke-destructive",
-    text: "text-destructive",
-    glow: "shadow-[0_0_60px_hsl(var(--destructive)/0.35)]",
-    bg: "bg-destructive/5",
-  },
-};
-
 export default function GuzzlerScoreGauge({ score, tier, grade }: GuzzlerScoreGaugeProps) {
-  const style = TIER_STYLES[tier];
+  const style = TIER_PRESENTATION[tier];
   const radius = 90;
   const circumference = 2 * Math.PI * radius;
   const clamped = Math.max(0, Math.min(100, score));
@@ -103,13 +77,7 @@ export default function GuzzlerScoreGauge({ score, tier, grade }: GuzzlerScoreGa
         {tier} Guzzler
       </h2>
       <p className="text-sm text-muted-foreground max-w-sm mx-auto">
-        {tier === "Severe"
-          ? "Your home is bleeding energy. Replacement is the highest-ROI move you can make."
-          : tier === "High"
-          ? "Significant waste detected. A modernization will pay you back fast."
-          : tier === "Moderate"
-          ? "Real savings on the table. Worth a closer look."
-          : "Your home is running efficiently — let's keep it that way."}
+        {style.blurb}
       </p>
     </motion.div>
   );
