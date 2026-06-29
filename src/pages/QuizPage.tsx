@@ -22,7 +22,7 @@ type Phase = "intro" | "question" | "gate" | "analyzing" | "results";
 
 // Verbatim scripts from the 12-questions spec (Tanzeel doc, 2026-06-22).
 const OPENING_SCRIPT =
-  "Hey there! I'm Cora — your Comfort IQ guide. In the next few minutes, I'm going to help you understand exactly what your HVAC system is costing you. Not in some vague 'maybe you should replace it' way — in actual numbers. Ready? Let's go.";
+  "Hey there! I'm Cora — your GuzzlerScore guide. In the next few minutes, I'm going to help you understand exactly what your HVAC system is costing you. Not in some vague 'maybe you should replace it' way — in actual numbers. Ready? Let's go.";
 const CLOSING_SCRIPT =
   "Alright — I've got everything I need for your preliminary Guzzler Score. Remember: this is based on what you told me. Your actual equipment might tell a different story — and honestly, it usually does. Let's see where you land…";
 

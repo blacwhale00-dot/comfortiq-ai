@@ -93,7 +93,7 @@ export default function IncompletePage() {
       <div className="container py-10 max-w-xl space-y-6">
         <div className="text-center">
           <h1 className="font-display font-extrabold text-2xl md:text-3xl text-foreground">
-            Your Comfort IQ Results
+            Your GuzzlerScore Results
           </h1>
           <p className="mt-2 text-sm text-muted-foreground">
             Here's where your home assessment landed.

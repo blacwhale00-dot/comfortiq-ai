@@ -29,7 +29,7 @@ export default function EstimatePage() {
       <div className="container py-12">
         <div className="text-center mb-10">
           <h1 className="text-3xl md:text-4xl font-display font-extrabold text-foreground mb-2">
-            Your ComfortIQ Estimate
+            Your GuzzlerScore Estimate
           </h1>
           <p className="text-muted-foreground">Personalized pricing based on your home assessment</p>
         </div>

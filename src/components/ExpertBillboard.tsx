@@ -71,7 +71,7 @@ export default function ExpertBillboard() {
                 onClick={() => setBioOpen(true)}
                 className="inline-flex items-center gap-1 text-sm font-semibold text-primary hover:text-primary/80 mt-4 transition-colors duration-200 group"
               >
-                Why I built ComfortIQ
+                Why I built GuzzlerScore
                 <ArrowRight className="w-4 h-4 transition-transform duration-200 group-hover:translate-x-0.5" />
               </button>
             </div>
@@ -84,10 +84,10 @@ export default function ExpertBillboard() {
         <DialogContent className="max-w-lg w-[calc(100vw-2rem)] max-h-[85vh] overflow-y-auto overflow-x-hidden p-4 sm:p-6">
           <DialogHeader>
             <DialogTitle className="font-display text-xl">
-              Why I Built ComfortIQ
+              Why I Built GuzzlerScore
             </DialogTitle>
             <DialogDescription className="sr-only">
-              Will Macon's story behind ComfortIQ
+              Will Macon's story behind GuzzlerScore
             </DialogDescription>
           </DialogHeader>
           <div className="flex items-center gap-4 mt-2">
@@ -111,7 +111,7 @@ export default function ExpertBillboard() {
               based on a 20-minute sales pitch and zero data.
             </p>
             <p>
-              I built ComfortIQ to flip the script. Instead of a salesperson
+              I built GuzzlerScore to flip the script. Instead of a salesperson
               showing up with a quote they pulled out of thin air, you get an{" "}
               <span className="font-semibold text-foreground">
                 Engineering Blueprint

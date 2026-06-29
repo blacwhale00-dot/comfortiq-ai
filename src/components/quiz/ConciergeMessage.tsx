@@ -21,7 +21,7 @@ export default function ConciergeMessage({ message, isTyping }: ConciergeMessage
       />
       <div className="flex-1 rounded-2xl rounded-tl-md bg-primary/5 border border-primary/15 px-4 py-3">
         <p className="text-xs font-semibold text-primary mb-1">
-          Cora <span className="text-muted-foreground font-normal">— Your Comfort IQ Guide</span>
+          Cora <span className="text-muted-foreground font-normal">— Your GuzzlerScore Guide</span>
         </p>
         {isTyping ? (
           <div className="flex gap-1.5 py-2">

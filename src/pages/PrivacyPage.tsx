@@ -13,7 +13,7 @@ export default function PrivacyPage() {
           <div className="space-y-8 text-muted-foreground leading-relaxed text-sm">
             <div>
               <h2 className="text-lg font-display font-bold text-foreground mb-2">1. Information We Collect</h2>
-              <p>When you use ComfortIQ.AI, we may collect the following information:</p>
+              <p>When you use GuzzlerScore, we may collect the following information:</p>
               <ul className="list-disc pl-5 mt-2 space-y-1">
                 <li><strong className="text-foreground">Personal Information:</strong> Name, email address, phone number, and home address provided during the comfort assessment.</li>
                 <li><strong className="text-foreground">Home &amp; System Data:</strong> HVAC system age, square footage, number of systems, and comfort challenges you select.</li>
@@ -77,7 +77,7 @@ export default function PrivacyPage() {
             <div>
               <h2 className="text-lg font-display font-bold text-foreground mb-2">8. Children's Privacy</h2>
               <p>
-                ComfortIQ.AI is not intended for use by individuals under the age of 18. We do not knowingly collect personal information from children.
+                GuzzlerScore is not intended for use by individuals under the age of 18. We do not knowingly collect personal information from children.
               </p>
             </div>
 
@@ -92,7 +92,7 @@ export default function PrivacyPage() {
               <h2 className="text-lg font-display font-bold text-foreground mb-2">10. Contact Us</h2>
               <p>
                 If you have questions about this privacy policy or your personal data, please contact us at{" "}
-                <a href="mailto:privacy@comfortiq.ai" className="text-primary hover:underline">privacy@comfortiq.ai</a>.
+                <a href="mailto:privacy@guzzlerscore.com" className="text-primary hover:underline">privacy@guzzlerscore.com</a>.
               </p>
             </div>
           </div>
