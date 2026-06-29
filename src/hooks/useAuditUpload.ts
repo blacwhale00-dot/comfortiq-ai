@@ -14,6 +14,9 @@ export interface AuditUpload {
   slots: Record<UploadSlotId, SlotState>;
   progress: UploadProgress;
   handleFile: (slotId: UploadSlotId, file: File) => Promise<void>;
+  // When the 48h upload window opened (quiz completion), for the countdown timer.
+  // null until resolved. See guzzler-timer.ts.
+  startedAt: string | null;
 }
 
 // Shared photo-upload engine for the visual-audit flows (/unlock and /audit).
@@ -46,6 +49,39 @@ export function useAuditUpload(sessionId: string | null): AuditUpload {
         }
         return next;
       });
+    })();
+    return () => {
+      active = false;
+    };
+  }, [sessionId]);
+
+  // Resolve the 48h window anchor: the precise quiz-completion stamp when
+  // available, else created_at — so the timer works even before the
+  // quiz_completed_at migration is applied (a missing column errors the first
+  // query, and we fall back rather than break).
+  const [startedAt, setStartedAt] = useState<string | null>(null);
+  useEffect(() => {
+    if (!sessionId) return;
+    let active = true;
+    void (async () => {
+      const primary = await supabase
+        .from("quiz_sessions")
+        .select("quiz_completed_at, created_at")
+        .eq("id", sessionId)
+        .maybeSingle();
+      if (!active) return;
+      if (!primary.error && primary.data) {
+        setStartedAt(primary.data.quiz_completed_at ?? primary.data.created_at);
+        return;
+      }
+      const fallback = await supabase
+        .from("quiz_sessions")
+        .select("created_at")
+        .eq("id", sessionId)
+        .maybeSingle();
+      if (active && !fallback.error && fallback.data) {
+        setStartedAt(fallback.data.created_at);
+      }
     })();
     return () => {
       active = false;
@@ -90,5 +126,5 @@ export function useAuditUpload(sessionId: string | null): AuditUpload {
     }
   };
 
-  return { slots, progress, handleFile };
+  return { slots, progress, handleFile, startedAt };
 }

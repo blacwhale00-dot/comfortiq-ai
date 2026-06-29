@@ -80,6 +80,21 @@ function persistEntryIntent(quizSessionId: string) {
     });
 }
 
+// Stamp the moment the quiz is completed — the anchor for the 48h upload window
+// (see guzzler-timer.ts). First-write-wins via `.is(null)` so the countdown never
+// resets on a re-submit. Fire-and-forget; if the column isn't migrated yet,
+// Supabase returns an error we just log and the timer falls back to created_at.
+function stampQuizCompletedAt(quizSessionId: string) {
+  void supabase
+    .from("quiz_sessions")
+    .update({ quiz_completed_at: new Date().toISOString() })
+    .eq("id", quizSessionId)
+    .is("quiz_completed_at", null)
+    .then(({ error }) => {
+      if (error) console.warn("quiz_completed_at not stamped:", error.message);
+    });
+}
+
 // Map the new system_age band to a homeowner-reported integer (years).
 // Bands must match the option `value`s in conciergeConfig.ts.
 function systemAgeToYears(band: string | number | undefined): number | null {
@@ -303,6 +318,7 @@ export default function QuizPage() {
 
       if (activeId) {
         localStorage.setItem("comfortiq_session", activeId);
+        stampQuizCompletedAt(activeId);
         await linkPropertyIntelligence(activeId, data);
       }
     } catch (err) {
