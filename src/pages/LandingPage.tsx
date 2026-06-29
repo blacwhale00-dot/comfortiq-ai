@@ -1,12 +1,14 @@
-import { useEffect, useMemo } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import Layout from "@/components/Layout";
+import IntentGate from "@/components/IntentGate";
 import { AlertOctagon, TrendingDown, BadgeCheck, Gauge, ShieldCheck, Clock, Heart, ArrowRight } from "lucide-react";
 import { motion } from "framer-motion";
 import guzzlerLogo from "@/assets/guzzler-score-logo.png";
 import { supabase } from "@/integrations/supabase/client";
 import { UPLOAD_SLOTS, computeUploadProgress, type UploadSlotId } from "@/lib/upload-progress";
+import { hasSeenEntryGate } from "@/lib/entry-intent";
 
 const fadeUp = {
   hidden: { opacity: 0, y: 16 },
@@ -83,6 +85,31 @@ export default function LandingPage() {
   const navigate = useNavigate();
   const sessionId = useMemo(() => localStorage.getItem("comfortiq_session"), []);
 
+  // The three intent doors are the entry moment. Show them once per browser
+  // session to a fresh visitor (no session) immediately to avoid a flash of the
+  // dashboard. Visitors with a session are resolved in the effect below: those
+  // already scored skip the doors; unscored sessions still see them.
+  const [showGate, setShowGate] = useState(() => !hasSeenEntryGate() && !sessionId);
+
+  useEffect(() => {
+    if (hasSeenEntryGate() || !sessionId) return;
+    let active = true;
+    void (async () => {
+      const { data, error } = await supabase
+        .from("quiz_sessions")
+        .select("guzzler_score")
+        .eq("id", sessionId)
+        .maybeSingle();
+      if (!active) return;
+      // Already scored → past the doors; let them land on the dashboard.
+      if (!error && data?.guzzler_score != null) return;
+      setShowGate(true);
+    })();
+    return () => {
+      active = false;
+    };
+  }, [sessionId]);
+
   // A returning homeowner who finished the quiz but never reached GOLD is sent
   // to their closed-window results. Unscored sessions (quiz unfinished) and GOLD
   // sessions are left on the landing page untouched. Once per browser session
@@ -115,6 +142,8 @@ export default function LandingPage() {
 
   return (
     <Layout>
+      {showGate && <IntentGate onDismiss={() => setShowGate(false)} />}
+
       {/* Page intro */}
       <section className="bg-background">
         <div className="container max-w-3xl text-center pt-6 pb-4">

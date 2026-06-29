@@ -17,6 +17,7 @@ import AnalyzingTransition from "@/components/quiz/AnalyzingTransition";
 import GuzzlerResults, { GuzzlerRevealData } from "@/components/quiz/GuzzlerResults";
 import { calculateGuzzlerScore } from "@/lib/guzzler-score";
 import { deriveRevealData } from "@/lib/guzzler-reveal";
+import { getStoredEntryIntent } from "@/lib/entry-intent";
 
 type Phase = "intro" | "question" | "gate" | "analyzing" | "results";
 
@@ -60,6 +61,23 @@ function buildPainPayload(answers: Record<string, string | number>) {
     pain_confidence: toPain5(weightFor(answers, "intent")),
     residents: null,
   };
+}
+
+// Best-effort: stamp the entry-door intent (researching / ready_now) onto the
+// session once it exists, so ComfortIQ can tier leads later. Fire-and-forget — if
+// the entry_intent column hasn't been migrated yet, Supabase returns an error we
+// just log; the quiz must never break on this. Newsletter intent never reaches
+// the quiz, so it's ignored here.
+function persistEntryIntent(quizSessionId: string) {
+  const intent = getStoredEntryIntent();
+  if (!intent || intent === "newsletter") return;
+  void supabase
+    .from("quiz_sessions")
+    .update({ entry_intent: intent })
+    .eq("id", quizSessionId)
+    .then(({ error }) => {
+      if (error) console.warn("entry_intent not persisted:", error.message);
+    });
 }
 
 // Map the new system_age band to a homeowner-reported integer (years).
@@ -125,6 +143,7 @@ export default function QuizPage() {
           .single();
         if (inserted) {
           setSessionId(inserted.id);
+          persistEntryIntent(inserted.id);
           return inserted.id;
         }
       } catch (err) {
@@ -278,6 +297,7 @@ export default function QuizPage() {
         if (inserted) {
           activeId = inserted.id;
           setSessionId(inserted.id);
+          persistEntryIntent(inserted.id);
         }
       }
 

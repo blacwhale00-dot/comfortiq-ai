@@ -167,6 +167,7 @@ export type Database = {
           city: string | null
           created_at: string
           email: string | null
+          entry_intent: string | null
           first_name: string | null
           funnel_status: string | null
           guzzler_score: number | null
@@ -208,6 +209,7 @@ export type Database = {
           city?: string | null
           created_at?: string
           email?: string | null
+          entry_intent?: string | null
           first_name?: string | null
           funnel_status?: string | null
           guzzler_score?: number | null
@@ -249,6 +251,7 @@ export type Database = {
           city?: string | null
           created_at?: string
           email?: string | null
+          entry_intent?: string | null
           first_name?: string | null
           funnel_status?: string | null
           guzzler_score?: number | null
