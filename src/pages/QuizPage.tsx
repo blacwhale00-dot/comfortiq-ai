@@ -18,6 +18,7 @@ import GuzzlerResults, { GuzzlerRevealData } from "@/components/quiz/GuzzlerResu
 import { calculateGuzzlerScore } from "@/lib/guzzler-score";
 import { deriveRevealData } from "@/lib/guzzler-reveal";
 import { getStoredEntryIntent } from "@/lib/entry-intent";
+import { buildCoraReminders } from "@/lib/cora-reminders";
 
 type Phase = "intro" | "question" | "gate" | "analyzing" | "results";
 
@@ -84,14 +85,47 @@ function persistEntryIntent(quizSessionId: string) {
 // (see guzzler-timer.ts). First-write-wins via `.is(null)` so the countdown never
 // resets on a re-submit. Fire-and-forget; if the column isn't migrated yet,
 // Supabase returns an error we just log and the timer falls back to created_at.
-function stampQuizCompletedAt(quizSessionId: string) {
+function stampQuizCompletedAt(quizSessionId: string, completedAt: string) {
   void supabase
     .from("quiz_sessions")
-    .update({ quiz_completed_at: new Date().toISOString() })
+    .update({ quiz_completed_at: completedAt })
     .eq("id", quizSessionId)
     .is("quiz_completed_at", null)
     .then(({ error }) => {
       if (error) console.warn("quiz_completed_at not stamped:", error.message);
+    });
+}
+
+// Build + persist Cora's 5 reminder SMS rows at quiz completion. The TS engine
+// (cora-reminders.ts) freezes the copy + send_at into each row so the worker
+// only has to send them — see plan.md. Anchored to the SAME completion instant
+// as the upload timer above so the two never drift. Fire-and-forget and
+// idempotent: the unique (quiz_session_id, milestone) constraint makes a
+// re-submit a no-op (ignoreDuplicates, so it never resets a row the worker has
+// already advanced), and any error — e.g. the table not migrated yet — is
+// logged without breaking the quiz.
+function persistCoraReminders(
+  quizSessionId: string,
+  completedAt: string,
+  firstName: string | null,
+  phone: string | null,
+) {
+  const reminders = buildCoraReminders(completedAt, { firstName });
+  if (reminders.length === 0) return;
+
+  const rows: TablesInsert<"cora_reminders">[] = reminders.map((r) => ({
+    quiz_session_id: quizSessionId,
+    milestone: r.milestone,
+    message: r.message,
+    send_at: r.send_at,
+    phone,
+  }));
+
+  void supabase
+    .from("cora_reminders")
+    .upsert(rows, { onConflict: "quiz_session_id,milestone", ignoreDuplicates: true })
+    .then(({ error }) => {
+      if (error) console.warn("cora_reminders not persisted:", error.message);
     });
 }
 
@@ -318,7 +352,11 @@ export default function QuizPage() {
 
       if (activeId) {
         localStorage.setItem("comfortiq_session", activeId);
-        stampQuizCompletedAt(activeId);
+        // One completion instant shared by the upload timer and Cora's reminders
+        // so their 48h windows can never drift apart.
+        const completedAt = new Date().toISOString();
+        stampQuizCompletedAt(activeId, completedAt);
+        persistCoraReminders(activeId, completedAt, firstName, data.phone);
         await linkPropertyIntelligence(activeId, data);
       }
     } catch (err) {
