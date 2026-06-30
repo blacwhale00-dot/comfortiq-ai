@@ -122,6 +122,44 @@ export type Database = {
           },
         ]
       }
+      quiz_answers: {
+        Row: {
+          answer_text: string | null
+          answer_value: number | null
+          created_at: string
+          id: string
+          question_id: string | null
+          question_number: number
+          quiz_id: string
+        }
+        Insert: {
+          answer_text?: string | null
+          answer_value?: number | null
+          created_at?: string
+          id?: string
+          question_id?: string | null
+          question_number: number
+          quiz_id: string
+        }
+        Update: {
+          answer_text?: string | null
+          answer_value?: number | null
+          created_at?: string
+          id?: string
+          question_id?: string | null
+          question_number?: number
+          quiz_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "quiz_answers_quiz_id_fkey"
+            columns: ["quiz_id"]
+            isOneToOne: false
+            referencedRelation: "quiz_sessions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       quiz_sessions: {
         Row: {
           age: number | null
@@ -129,8 +167,10 @@ export type Database = {
           city: string | null
           created_at: string
           email: string | null
+          entry_intent: string | null
           first_name: string | null
           funnel_status: string | null
+          guzzler_score: number | null
           health_conditions: boolean | null
           id: string
           last_name: string | null
@@ -147,6 +187,7 @@ export type Database = {
           pain_trust: number | null
           phone: string | null
           project_tier: string | null
+          quiz_completed_at: string | null
           residents: number | null
           roi_report: Json | null
           solar_interest: boolean | null
@@ -156,6 +197,7 @@ export type Database = {
           system_age: number | null
           total_discount_earned: number | null
           updated_at: string
+          upload_air_handler: string | null
           upload_bill: string | null
           upload_breaker: string | null
           upload_outdoor: string | null
@@ -168,8 +210,10 @@ export type Database = {
           city?: string | null
           created_at?: string
           email?: string | null
+          entry_intent?: string | null
           first_name?: string | null
           funnel_status?: string | null
+          guzzler_score?: number | null
           health_conditions?: boolean | null
           id?: string
           last_name?: string | null
@@ -186,6 +230,7 @@ export type Database = {
           pain_trust?: number | null
           phone?: string | null
           project_tier?: string | null
+          quiz_completed_at?: string | null
           residents?: number | null
           roi_report?: Json | null
           solar_interest?: boolean | null
@@ -195,6 +240,7 @@ export type Database = {
           system_age?: number | null
           total_discount_earned?: number | null
           updated_at?: string
+          upload_air_handler?: string | null
           upload_bill?: string | null
           upload_breaker?: string | null
           upload_outdoor?: string | null
@@ -207,8 +253,10 @@ export type Database = {
           city?: string | null
           created_at?: string
           email?: string | null
+          entry_intent?: string | null
           first_name?: string | null
           funnel_status?: string | null
+          guzzler_score?: number | null
           health_conditions?: boolean | null
           id?: string
           last_name?: string | null
@@ -225,6 +273,7 @@ export type Database = {
           pain_trust?: number | null
           phone?: string | null
           project_tier?: string | null
+          quiz_completed_at?: string | null
           residents?: number | null
           roi_report?: Json | null
           solar_interest?: boolean | null
@@ -234,6 +283,7 @@ export type Database = {
           system_age?: number | null
           total_discount_earned?: number | null
           updated_at?: string
+          upload_air_handler?: string | null
           upload_bill?: string | null
           upload_breaker?: string | null
           upload_outdoor?: string | null

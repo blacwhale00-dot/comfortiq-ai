@@ -57,7 +57,7 @@ const welcome: SMSTouch = {
   delay_hours: 0,
   subject: "Welcome — Report ready",
   getMessage: (c) =>
-    `Hey ${c.firstName} — Comfort here from ComfortIQ.AI. Your home assessment report is ready. We found your Power Tax: $${c.powerTaxMonthly ?? "?"}/month. Tap the link to see your full report and what to do next → ${c.reportLink ?? "comfortiq.ai/report"}`,
+    `Hey ${c.firstName} — Comfort here from GuzzlerScore. Your home assessment report is ready. We found your Power Tax: $${c.powerTaxMonthly ?? "?"}/month. Tap the link to see your full report and what to do next → ${c.reportLink ?? "guzzlerscore.com/report"}`,
 };
 
 const reportReady: SMSTouch = {
@@ -65,7 +65,7 @@ const reportReady: SMSTouch = {
   delay_hours: 0,
   subject: "Report ready — Full breakdown",
   getMessage: (c) =>
-    `${c.firstName} — your personalized HVAC readiness report is complete. Here's what we found: your system is likely losing $${c.powerTaxAnnual ?? "??"}/year in wasted energy. The full breakdown with pricing tiers is ready → ${c.reportLink ?? "comfortiq.ai/report"} No pressure — just want you to have the information.`,
+    `${c.firstName} — your personalized HVAC readiness report is complete. Here's what we found: your system is likely losing $${c.powerTaxAnnual ?? "??"}/year in wasted energy. The full breakdown with pricing tiers is ready → ${c.reportLink ?? "guzzlerscore.com/report"} No pressure — just want you to have the information.`,
 };
 
 // ──────────────────────────────────────────────────────────────

@@ -188,7 +188,7 @@ export default function ComfortQuizUI() {
               View My Full Report
             </button>
             <p className="text-xs text-slate-400 mt-3">
-              Powered by ComfortIQ.AI · William Macon, RS Andrews
+              Powered by GuzzlerScore · William Macon, RS Andrews
             </p>
           </div>
         </div>

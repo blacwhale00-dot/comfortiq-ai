@@ -60,7 +60,7 @@ export default function CreditCertificate() {
 
           <div className="mt-4 pt-4 border-t border-dashed border-border">
             <p className="text-[11px] text-muted-foreground leading-relaxed">
-              Earned by completing the ComfortIQ Readiness Assessment.
+              Earned by completing the GuzzlerScore Readiness Assessment.
               Finalize with the Visual Audit to apply toward your install.
             </p>
           </div>
