@@ -14,6 +14,59 @@ export type Database = {
   }
   public: {
     Tables: {
+      cora_reminders: {
+        Row: {
+          attempts: number
+          created_at: string
+          id: string
+          last_error: string | null
+          message: string
+          milestone: string
+          phone: string | null
+          provider_sid: string | null
+          quiz_session_id: string
+          send_at: string
+          sent_at: string | null
+          status: string
+        }
+        Insert: {
+          attempts?: number
+          created_at?: string
+          id?: string
+          last_error?: string | null
+          message: string
+          milestone: string
+          phone?: string | null
+          provider_sid?: string | null
+          quiz_session_id: string
+          send_at: string
+          sent_at?: string | null
+          status?: string
+        }
+        Update: {
+          attempts?: number
+          created_at?: string
+          id?: string
+          last_error?: string | null
+          message?: string
+          milestone?: string
+          phone?: string | null
+          provider_sid?: string | null
+          quiz_session_id?: string
+          send_at?: string
+          sent_at?: string | null
+          status?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "cora_reminders_quiz_session_id_fkey"
+            columns: ["quiz_session_id"]
+            isOneToOne: false
+            referencedRelation: "quiz_sessions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       property_intelligence: {
         Row: {
           city: string | null
