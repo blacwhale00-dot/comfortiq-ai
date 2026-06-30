@@ -1,15 +1,27 @@
-import { useEffect, useMemo, useRef } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import Layout from "@/components/Layout";
 import ConciergeMessage from "@/components/quiz/ConciergeMessage";
 import UnlockProgress from "@/components/quiz/UnlockProgress";
 import UploadSlot from "@/components/quiz/UploadSlot";
+import UploadTimer from "@/components/quiz/UploadTimer";
 import { useAuditUpload } from "@/hooks/useAuditUpload";
 import { UPLOAD_SLOTS } from "@/lib/upload-progress";
+import type { TimerPhase } from "@/lib/guzzler-timer";
 
-// Cora stays encouraging at every stage — never punitive about what's left.
-function coraMessage(uploadedCount: number, billUploaded: boolean, isComplete: boolean): string {
+// Cora stays encouraging at every stage — never punitive about what's left. As
+// the window tightens (red/critical), she nudges on urgency without scolding.
+function coraMessage(
+  uploadedCount: number,
+  billUploaded: boolean,
+  isComplete: boolean,
+  phase: TimerPhase,
+): string {
   if (isComplete) return "Incredible — that's GOLD status! 🏆 Every photo's in. Let's reveal your TRUE Guzzler Score.";
+  if (phase === "critical")
+    return "Heads up — your $900 window closes within the hour. Snap whatever's easiest right now and we'll lock in every dollar you've earned. ⏳";
+  if (phase === "red")
+    return "We're in the final hours of your discount window. Even one more photo sharpens your numbers — grab the quickest one. 💚";
   if (billUploaded) return "The bill's in — that's the big one done. Round out the equipment photos whenever you're ready. 💚";
   if (uploadedCount === 0) return "Let's find your TRUE Guzzler Score. Snap whichever's easiest first — no rush, you can always come back.";
   return `Love it — ${uploadedCount} down! Each photo sharpens your numbers. The electric bill is the big $500 unlock when you're ready. 📸`;
@@ -19,13 +31,17 @@ export default function UnlockPage() {
   const navigate = useNavigate();
   const sessionId = useMemo(() => localStorage.getItem("comfortiq_session"), []);
 
-  const { slots, progress, handleFile } = useAuditUpload(sessionId);
+  const { slots, progress, handleFile, startedAt } = useAuditUpload(sessionId);
   const hasRouted = useRef(false);
+  const [phase, setPhase] = useState<TimerPhase>("normal");
 
   // No session means they skipped the quiz — send them back to start it.
   useEffect(() => {
     if (!sessionId) navigate("/quiz", { replace: true });
   }, [sessionId, navigate]);
+
+  // Window expired → lock into the Incomplete Funnel (closed-window results).
+  const handleExpire = () => navigate("/incomplete", { replace: true });
 
   const billUploaded = slots.bill.uploaded;
 
@@ -53,8 +69,10 @@ export default function UnlockPage() {
           </p>
         </div>
 
+        <UploadTimer startedAt={startedAt} onExpire={handleExpire} onPhaseChange={setPhase} />
+
         <ConciergeMessage
-          message={coraMessage(progress.uploadedCount, billUploaded, progress.isComplete)}
+          message={coraMessage(progress.uploadedCount, billUploaded, progress.isComplete, phase)}
         />
 
         <UnlockProgress

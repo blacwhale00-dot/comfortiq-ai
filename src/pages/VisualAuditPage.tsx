@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom";
 import Layout from "@/components/Layout";
 import ComfortAIChat from "@/components/ComfortAIChat";
 import UploadSlot from "@/components/quiz/UploadSlot";
+import UploadTimer from "@/components/quiz/UploadTimer";
 import { Button } from "@/components/ui/button";
 import { Sparkles, ArrowRight, Loader2 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
@@ -27,7 +28,7 @@ export default function VisualAuditPage() {
   const navigate = useNavigate();
   const sessionId = useMemo(() => localStorage.getItem("comfortiq_session"), []);
 
-  const { slots, progress, handleFile } = useAuditUpload(sessionId);
+  const { slots, progress, handleFile, startedAt } = useAuditUpload(sessionId);
   const [analyzing, setAnalyzing] = useState(false);
   const [roiReport, setRoiReport] = useState<RoiReport | null>(null);
 
@@ -35,6 +36,9 @@ export default function VisualAuditPage() {
   useEffect(() => {
     if (!sessionId) navigate("/quiz", { replace: true });
   }, [sessionId, navigate]);
+
+  // Window expired → lock into the Incomplete Funnel (closed-window results).
+  const handleExpire = () => navigate("/incomplete", { replace: true });
 
   const anyUploaded = progress.uploadedCount > 0;
   const isExpress = localStorage.getItem("comfortiq_express") === "true";
@@ -99,6 +103,9 @@ export default function VisualAuditPage() {
                 animate={{ width: `${(progress.uploadedCount / progress.total) * 100}%` }}
                 transition={{ duration: 0.7, ease: "easeOut" }}
               />
+            </div>
+            <div className="mt-3">
+              <UploadTimer startedAt={startedAt} onExpire={handleExpire} />
             </div>
           </div>
         </div>
