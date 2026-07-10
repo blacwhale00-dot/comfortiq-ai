@@ -162,6 +162,15 @@ describe("classifyLeadSource", () => {
     expect(src.category).toBe("partner");
   });
 
+  it("treats the landing-page marker as internal, not a partner", () => {
+    // Bare marker (untagged visitor clicking the landing CTA) → direct.
+    expect(classifyLeadSource("?ref=guzzlerscore_landing", "").category).toBe("direct");
+    // Marker + passed-through partner tag → the real source wins.
+    const src = classifyLeadSource("?ref=guzzlerscore_landing&src=oncore", "");
+    expect(src.category).toBe("partner");
+    expect(src.utm_source).toBe("oncore");
+  });
+
   it("classifies search referrers as organic and everything else as direct", () => {
     expect(classifyLeadSource("", "https://www.google.com/search?q=hvac").category).toBe("organic");
     expect(classifyLeadSource("", "").category).toBe("direct");

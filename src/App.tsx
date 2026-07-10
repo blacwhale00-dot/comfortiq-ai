@@ -1,7 +1,5 @@
-import { useEffect } from "react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { BrowserRouter, Route, Routes } from "react-router-dom";
-import { captureLeadSource } from "@/lib/lead-source";
+import { BrowserRouter, Navigate, Route, Routes } from "react-router-dom";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -24,14 +22,7 @@ import NotFound from "./pages/NotFound.tsx";
 
 const queryClient = new QueryClient();
 
-const App = () => {
-  // First-touch attribution: classify + stash the lead source (UTMs, ?src=
-  // partner refs, search referrers) before any route renders.
-  useEffect(() => {
-    captureLeadSource();
-  }, []);
-
-  return (
+const App = () => (
   <QueryClientProvider client={queryClient}>
     <TooltipProvider>
       <Toaster />
@@ -39,6 +30,9 @@ const App = () => {
       <BrowserRouter>
         <Routes>
           <Route path="/" element={<Index />} />
+          {/* The guzzlerscore.com landing CTA points here (landing/index.html);
+              attribution is captured on mount before this redirect renders. */}
+          <Route path="/assess" element={<Navigate to="/quiz" replace />} />
           <Route path="/quiz" element={<QuizPage />} />
           <Route path="/unlock" element={<UnlockPage />} />
           <Route path="/trophy" element={<TrophyPage />} />
@@ -58,7 +52,6 @@ const App = () => {
       </BrowserRouter>
     </TooltipProvider>
   </QueryClientProvider>
-  );
-};
+);
 
 export default App;
