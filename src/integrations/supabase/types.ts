@@ -67,6 +67,41 @@ export type Database = {
           },
         ]
       }
+      funnel_events: {
+        Row: {
+          created_at: string
+          event_type: string
+          id: string
+          metadata: Json
+          quiz_session_id: string | null
+          step: string | null
+        }
+        Insert: {
+          created_at?: string
+          event_type: string
+          id?: string
+          metadata?: Json
+          quiz_session_id?: string | null
+          step?: string | null
+        }
+        Update: {
+          created_at?: string
+          event_type?: string
+          id?: string
+          metadata?: Json
+          quiz_session_id?: string | null
+          step?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "funnel_events_quiz_session_id_fkey"
+            columns: ["quiz_session_id"]
+            isOneToOne: false
+            referencedRelation: "quiz_sessions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       property_intelligence: {
         Row: {
           city: string | null

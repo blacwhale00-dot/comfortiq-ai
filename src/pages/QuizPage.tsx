@@ -19,6 +19,7 @@ import { calculateGuzzlerScore } from "@/lib/guzzler-score";
 import { deriveRevealData } from "@/lib/guzzler-reveal";
 import { getStoredEntryIntent } from "@/lib/entry-intent";
 import { buildCoraReminders } from "@/lib/cora-reminders";
+import { trackFunnelEvent } from "@/lib/funnel-events";
 
 type Phase = "intro" | "question" | "gate" | "analyzing" | "results";
 
@@ -231,6 +232,7 @@ export default function QuizPage() {
   const startQuiz = () => {
     setPhase("question");
     setCoraComment("Let's start simple. I'll react as you answer.");
+    trackFunnelEvent(sessionId, "quiz_started");
   };
 
   // User picks an option. Store it immediately, then wait 1.5–2s before
@@ -243,7 +245,10 @@ export default function QuizPage() {
     // Ensure the session row exists, then persist this single answer immediately.
     void (async () => {
       const id = await saveSession(false, next);
-      if (id) await saveAnswer(id, q.id, val);
+      if (id) {
+        await saveAnswer(id, q.id, val);
+        trackFunnelEvent(id, "question_answered", String(currentQ + 1));
+      }
     })();
 
     // Floating-bubble nudge reacts instantly; the in-flow mirror waits.
@@ -270,6 +275,7 @@ export default function QuizPage() {
     // After Q12: closing script, then the address gate.
     setCoraComment(CLOSING_SCRIPT);
     setPhase("gate");
+    trackFunnelEvent(sessionId, "gate_viewed");
   };
 
   useEffect(() => {
@@ -357,6 +363,7 @@ export default function QuizPage() {
         const completedAt = new Date().toISOString();
         stampQuizCompletedAt(activeId, completedAt);
         persistCoraReminders(activeId, completedAt, firstName, data.phone);
+        trackFunnelEvent(activeId, "contact_submitted");
         await linkPropertyIntelligence(activeId, data);
       }
     } catch (err) {
@@ -427,6 +434,7 @@ export default function QuizPage() {
     // Engine owns score/tier; the reveal layer adds grade, categories, waste,
     // drivers and the unlock-progress values from the raw 12 answers.
     const result = deriveRevealData(base, answers);
+    trackFunnelEvent(sessionId, "score_revealed", undefined, { score: base.score });
 
     setGuzzlerData(result);
     setCoraComment(

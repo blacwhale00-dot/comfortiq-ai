@@ -7,6 +7,7 @@ import {
   type UploadProgress,
   type UploadSlotId,
 } from "@/lib/upload-progress";
+import { trackFunnelEvent } from "@/lib/funnel-events";
 
 export type SlotState = { uploaded: boolean; uploading: boolean };
 
@@ -112,12 +113,16 @@ export function useAuditUpload(sessionId: string | null): AuditUpload {
 
       const { data: urlData } = supabase.storage.from("audit-uploads").getPublicUrl(path);
 
-      const tier = computeUploadProgress(new Set([...uploadedIds, slotId])).dataTier;
+      const progressAfter = computeUploadProgress(new Set([...uploadedIds, slotId]));
+      const tier = progressAfter.dataTier;
       const update: TablesUpdate<"quiz_sessions"> = {
         funnel_status: `audit_${tier.toLowerCase()}`,
       };
       update[slot.uploadKey] = urlData.publicUrl;
       await supabase.from("quiz_sessions").update(update).eq("id", sessionId);
+
+      trackFunnelEvent(sessionId, "photo_uploaded", slotId, { tier });
+      if (progressAfter.isComplete) trackFunnelEvent(sessionId, "audit_complete");
 
       setSlots((prev) => ({ ...prev, [slotId]: { uploaded: true, uploading: false } }));
     } catch (err) {
