@@ -24,6 +24,8 @@ export interface SessionSummary {
   upload_breaker: string | null;
   upload_thermostat: string | null;
   upload_bill: string | null;
+  lead_source: string | null;
+  utm_source: string | null;
 }
 
 // The 48h photo-upload window (mirrors guzzler-timer.ts).
@@ -149,6 +151,52 @@ export function buildRecoveryQueue(
     if (aActive !== bActive) return aActive ? -1 : 1;
     return aActive ? a.hoursLeft - b.hoursLeft : b.hoursLeft - a.hoursLeft;
   });
+}
+
+export interface SourceStat {
+  /** Grouping key, e.g. "partner:oncore", "paid:facebook", "organic". */
+  key: string;
+  /** Display label, e.g. "oncore · partner", "facebook · paid", "Organic". */
+  label: string;
+  count: number;
+  /** Sessions from this source that captured contact (reached quiz_complete). */
+  completed: number;
+  conversionPct: number;
+}
+
+// Where the leads come from: paid ads vs partners/lead sellers (Oncore etc.)
+// vs organic vs direct. Paid and partner rows split out by utm_source so each
+// campaign / seller is its own line; organic, direct, and untracked (rows from
+// before attribution shipped) stay single lines.
+export function buildSourceBreakdown(sessions: SessionSummary[]): SourceStat[] {
+  const groups = new Map<string, { label: string; count: number; completed: number }>();
+  for (const s of sessions) {
+    if (stageRank(s.funnel_status) < 0) continue;
+    const category = s.lead_source ?? "untracked";
+    let key: string;
+    let label: string;
+    if (category === "partner" || category === "paid") {
+      const name = s.utm_source ?? category;
+      key = `${category}:${name}`;
+      label = `${name} · ${category}`;
+    } else {
+      key = category;
+      label = category.charAt(0).toUpperCase() + category.slice(1);
+    }
+    const group = groups.get(key) ?? { label, count: 0, completed: 0 };
+    group.count += 1;
+    if (stageRank(s.funnel_status) >= 2) group.completed += 1;
+    groups.set(key, group);
+  }
+  return [...groups.entries()]
+    .map(([key, g]) => ({
+      key,
+      label: g.label,
+      count: g.count,
+      completed: g.completed,
+      conversionPct: g.count === 0 ? 0 : Math.round((g.completed / g.count) * 100),
+    }))
+    .sort((a, b) => b.count - a.count);
 }
 
 export interface DailyStats {

@@ -3,9 +3,11 @@ import {
   buildDailyStats,
   buildFunnelSteps,
   buildRecoveryQueue,
+  buildSourceBreakdown,
   stageRank,
   type SessionSummary,
 } from "@/lib/command-center";
+import { classifyLeadSource } from "@/lib/lead-source";
 
 const NOW = new Date("2026-07-10T12:00:00Z");
 
@@ -26,6 +28,8 @@ function session(overrides: Partial<SessionSummary>): SessionSummary {
     upload_breaker: null,
     upload_thermostat: null,
     upload_bill: null,
+    lead_source: null,
+    utm_source: null,
     ...overrides,
   };
 }
@@ -135,6 +139,59 @@ describe("buildRecoveryQueue", () => {
     const queue = buildRecoveryQueue(sessions, NOW);
     expect(queue.map((l) => l.id)).toEqual(["fallback"]);
     expect(queue[0].hoursLeft).toBeCloseTo(12, 0);
+  });
+});
+
+describe("classifyLeadSource", () => {
+  it("classifies partner short-links and keeps the seller name", () => {
+    const src = classifyLeadSource("?src=oncore", "");
+    expect(src.category).toBe("partner");
+    expect(src.utm_source).toBe("oncore");
+    expect(src.utm_medium).toBe("partner");
+  });
+
+  it("classifies tagged paid traffic", () => {
+    const src = classifyLeadSource("?utm_source=facebook&utm_medium=cpc&utm_campaign=summer", "");
+    expect(src.category).toBe("paid");
+    expect(src.utm_source).toBe("facebook");
+    expect(src.utm_campaign).toBe("summer");
+  });
+
+  it("classifies utm_medium=partner as partner", () => {
+    const src = classifyLeadSource("?utm_source=oncore&utm_medium=partner", "");
+    expect(src.category).toBe("partner");
+  });
+
+  it("classifies search referrers as organic and everything else as direct", () => {
+    expect(classifyLeadSource("", "https://www.google.com/search?q=hvac").category).toBe("organic");
+    expect(classifyLeadSource("", "").category).toBe("direct");
+  });
+});
+
+describe("buildSourceBreakdown", () => {
+  it("groups by source with per-seller and per-campaign lines", () => {
+    const sessions = [
+      session({ lead_source: "partner", utm_source: "oncore", funnel_status: "quiz_complete" }),
+      session({ lead_source: "partner", utm_source: "oncore", funnel_status: "question_3" }),
+      session({ lead_source: "paid", utm_source: "facebook", funnel_status: "audit_gold" }),
+      session({ lead_source: "direct", funnel_status: "started" }),
+      session({ funnel_status: "quiz_complete" }), // pre-attribution row
+      session({ lead_source: "partner", utm_source: "oncore", funnel_status: "newsletter" }), // excluded
+    ];
+    const rows = buildSourceBreakdown(sessions);
+
+    expect(rows[0]).toMatchObject({
+      key: "partner:oncore",
+      label: "oncore · partner",
+      count: 2,
+      completed: 1,
+      conversionPct: 50,
+    });
+    expect(rows).toContainEqual(
+      expect.objectContaining({ key: "paid:facebook", count: 1, conversionPct: 100 }),
+    );
+    expect(rows).toContainEqual(expect.objectContaining({ key: "direct", label: "Direct" }));
+    expect(rows).toContainEqual(expect.objectContaining({ key: "untracked", count: 1 }));
   });
 });
 

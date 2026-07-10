@@ -18,6 +18,7 @@ import GuzzlerResults, { GuzzlerRevealData } from "@/components/quiz/GuzzlerResu
 import { calculateGuzzlerScore } from "@/lib/guzzler-score";
 import { deriveRevealData } from "@/lib/guzzler-reveal";
 import { getStoredEntryIntent } from "@/lib/entry-intent";
+import { persistLeadSource } from "@/lib/lead-source";
 import { buildCoraReminders } from "@/lib/cora-reminders";
 import { trackFunnelEvent } from "@/lib/funnel-events";
 
@@ -194,6 +195,7 @@ export default function QuizPage() {
         if (inserted) {
           setSessionId(inserted.id);
           persistEntryIntent(inserted.id);
+          void persistLeadSource(inserted.id);
           return inserted.id;
         }
       } catch (err) {
@@ -353,6 +355,7 @@ export default function QuizPage() {
           activeId = inserted.id;
           setSessionId(inserted.id);
           persistEntryIntent(inserted.id);
+          void persistLeadSource(inserted.id);
         }
       }
 

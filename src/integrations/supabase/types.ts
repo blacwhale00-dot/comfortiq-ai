@@ -262,6 +262,7 @@ export type Database = {
           health_conditions: boolean | null
           id: string
           last_name: string | null
+          lead_source: string | null
           num_systems: string | null
           pain_bills: number | null
           pain_confidence: number | null
@@ -276,6 +277,7 @@ export type Database = {
           phone: string | null
           project_tier: string | null
           quiz_completed_at: string | null
+          referrer: string | null
           residents: number | null
           roi_report: Json | null
           solar_interest: boolean | null
@@ -290,6 +292,9 @@ export type Database = {
           upload_breaker: string | null
           upload_outdoor: string | null
           upload_thermostat: string | null
+          utm_campaign: string | null
+          utm_medium: string | null
+          utm_source: string | null
           zip_code: string | null
         }
         Insert: {
@@ -305,6 +310,7 @@ export type Database = {
           health_conditions?: boolean | null
           id?: string
           last_name?: string | null
+          lead_source?: string | null
           num_systems?: string | null
           pain_bills?: number | null
           pain_confidence?: number | null
@@ -319,6 +325,7 @@ export type Database = {
           phone?: string | null
           project_tier?: string | null
           quiz_completed_at?: string | null
+          referrer?: string | null
           residents?: number | null
           roi_report?: Json | null
           solar_interest?: boolean | null
@@ -333,6 +340,9 @@ export type Database = {
           upload_breaker?: string | null
           upload_outdoor?: string | null
           upload_thermostat?: string | null
+          utm_campaign?: string | null
+          utm_medium?: string | null
+          utm_source?: string | null
           zip_code?: string | null
         }
         Update: {
@@ -348,6 +358,7 @@ export type Database = {
           health_conditions?: boolean | null
           id?: string
           last_name?: string | null
+          lead_source?: string | null
           num_systems?: string | null
           pain_bills?: number | null
           pain_confidence?: number | null
@@ -362,6 +373,7 @@ export type Database = {
           phone?: string | null
           project_tier?: string | null
           quiz_completed_at?: string | null
+          referrer?: string | null
           residents?: number | null
           roi_report?: Json | null
           solar_interest?: boolean | null
@@ -376,6 +388,9 @@ export type Database = {
           upload_breaker?: string | null
           upload_outdoor?: string | null
           upload_thermostat?: string | null
+          utm_campaign?: string | null
+          utm_medium?: string | null
+          utm_source?: string | null
           zip_code?: string | null
         }
         Relationships: []

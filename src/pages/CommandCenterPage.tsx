@@ -17,6 +17,7 @@ import {
   buildDailyStats,
   buildFunnelSteps,
   buildRecoveryQueue,
+  buildSourceBreakdown,
   stageRank,
   type SessionSummary,
 } from "@/lib/command-center";
@@ -32,8 +33,9 @@ const RANGE_OPTIONS = [
   { days: 90, label: "90 days" },
 ] as const;
 
-const SESSION_COLUMNS =
+const BASE_COLUMNS =
   "id, first_name, last_name, phone, email, funnel_status, guzzler_score, entry_intent, quiz_completed_at, created_at, updated_at, upload_outdoor, upload_breaker, upload_thermostat, upload_bill";
+const SESSION_COLUMNS = `${BASE_COLUMNS}, lead_source, utm_source`;
 
 function useSessions(rangeDays: number) {
   return useQuery({
@@ -41,14 +43,23 @@ function useSessions(rangeDays: number) {
     refetchInterval: 60_000,
     queryFn: async (): Promise<SessionSummary[]> => {
       const since = new Date(Date.now() - rangeDays * 24 * 3_600_000).toISOString();
-      const { data, error } = await supabase
-        .from("quiz_sessions")
-        .select(SESSION_COLUMNS)
-        .gte("created_at", since)
-        .order("created_at", { ascending: false })
-        .limit(1000);
-      if (error) throw error;
-      return (data ?? []) as SessionSummary[];
+      const fetchWith = (columns: string) =>
+        supabase
+          .from("quiz_sessions")
+          .select(columns)
+          .gte("created_at", since)
+          .order("created_at", { ascending: false })
+          .limit(1000);
+
+      // Primary select includes the attribution columns; fall back without them
+      // if that migration hasn't been applied yet (useAuditUpload pattern).
+      const primary = await fetchWith(SESSION_COLUMNS);
+      if (!primary.error) return (primary.data ?? []) as unknown as SessionSummary[];
+      const fallback = await fetchWith(BASE_COLUMNS);
+      if (fallback.error) throw fallback.error;
+      return ((fallback.data ?? []) as unknown as Omit<SessionSummary, "lead_source" | "utm_source">[]).map(
+        (row) => ({ ...row, lead_source: null, utm_source: null }),
+      );
     },
   });
 }
@@ -180,6 +191,10 @@ export default function CommandCenterPage() {
     () => (sessions ?? []).filter((s) => stageRank(s.funnel_status) >= 2).slice(0, 25),
     [sessions],
   );
+  const sources = useMemo(
+    () => (sessions ? buildSourceBreakdown(sessions) : []),
+    [sessions],
+  );
 
   return (
     <Layout>
@@ -250,6 +265,53 @@ export default function CommandCenterPage() {
                   </p>
                 ) : (
                   <FunnelChart sessions={sessions} />
+                )}
+              </CardContent>
+            </Card>
+
+            {/* Lead sources */}
+            <Card className="shadow-card">
+              <CardHeader className="pb-3">
+                <CardTitle className="text-base">
+                  Lead sources · last {rangeDays} days
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                {sources.length === 0 ? (
+                  <p className="text-sm text-muted-foreground py-6 text-center">
+                    No sessions in this range yet.
+                  </p>
+                ) : (
+                  <div className="space-y-3">
+                    {sources.map((src) => {
+                      const max = sources[0]?.count || 1;
+                      return (
+                        <div
+                          key={src.key}
+                          title={`${src.label}: ${src.count} leads, ${src.completed} captured contact (${src.conversionPct}%)`}
+                        >
+                          <div className="flex items-baseline justify-between mb-1">
+                            <p className="text-sm font-medium">{src.label}</p>
+                            <p className="text-xs text-muted-foreground">
+                              {src.completed} of {src.count} captured · {src.conversionPct}%
+                            </p>
+                          </div>
+                          <div className="w-full bg-border/50 rounded h-5">
+                            <div
+                              className="h-5 rounded gradient-teal flex items-center transition-all duration-500"
+                              style={{
+                                width: `${Math.max((src.count / max) * 100, src.count > 0 ? 5 : 0)}%`,
+                              }}
+                            >
+                              <span className="text-xs font-semibold text-primary-foreground px-2">
+                                {src.count}
+                              </span>
+                            </div>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
                 )}
               </CardContent>
             </Card>

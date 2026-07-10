@@ -6,6 +6,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Zap } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
+import { persistLeadSource } from "@/lib/lead-source";
 
 interface ExpressAuditGateProps {
   open: boolean;
@@ -40,6 +41,7 @@ export default function ExpressAuditGate({ open, onOpenChange }: ExpressAuditGat
 
       localStorage.setItem("comfortiq_session", data.id);
       localStorage.setItem("comfortiq_express", "true");
+      void persistLeadSource(data.id);
       onOpenChange(false);
       navigate("/audit");
     } catch (err) {
