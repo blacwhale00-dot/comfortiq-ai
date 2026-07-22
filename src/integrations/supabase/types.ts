@@ -223,6 +223,7 @@ export type Database = {
           entry_intent: string | null
           first_name: string | null
           funnel_status: string | null
+          guzzler_report: Json | null
           guzzler_score: number | null
           health_conditions: boolean | null
           id: string
@@ -266,6 +267,7 @@ export type Database = {
           entry_intent?: string | null
           first_name?: string | null
           funnel_status?: string | null
+          guzzler_report?: Json | null
           guzzler_score?: number | null
           health_conditions?: boolean | null
           id?: string
@@ -309,6 +311,7 @@ export type Database = {
           entry_intent?: string | null
           first_name?: string | null
           funnel_status?: string | null
+          guzzler_report?: Json | null
           guzzler_score?: number | null
           health_conditions?: boolean | null
           id?: string

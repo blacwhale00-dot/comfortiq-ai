@@ -1,7 +1,7 @@
 import { useState, useCallback, useEffect, useRef } from "react";
 import Layout from "@/components/Layout";
 import { supabase } from "@/integrations/supabase/client";
-import type { TablesInsert, TablesUpdate } from "@/integrations/supabase/types";
+import type { Json, TablesInsert, TablesUpdate } from "@/integrations/supabase/types";
 import { AnimatePresence, motion } from "framer-motion";
 import {
   quizQuestions,
@@ -411,22 +411,27 @@ export default function QuizPage() {
       yearBuiltSource,
     });
 
-    // Persist the engine's score so it can be re-displayed later without
-    // recomputing (the incomplete/expired funnel screen reads it back). Fire and
-    // forget — the reveal shouldn't wait on this write.
+    // Engine owns score/tier; the reveal layer adds grade, categories, waste,
+    // drivers and the unlock-progress values from the raw 12 answers.
+    const result = deriveRevealData(base, answers);
+
+    // Persist the score AND the full reveal payload so both can be reused later
+    // without recomputing: the incomplete/expired screen reads guzzler_score, and
+    // the GOLD PDF (send-report edge function) renders straight from
+    // guzzler_report — the exact values shown here, no scoring logic duplicated
+    // server-side. Fire and forget — the reveal shouldn't wait on this write.
     if (sessionId) {
       void supabase
         .from("quiz_sessions")
-        .update({ guzzler_score: base.score })
+        .update({
+          guzzler_score: base.score,
+          guzzler_report: result as unknown as Json,
+        })
         .eq("id", sessionId)
         .then(({ error }) => {
           if (error) console.error("Failed to persist guzzler score:", error);
         });
     }
-
-    // Engine owns score/tier; the reveal layer adds grade, categories, waste,
-    // drivers and the unlock-progress values from the raw 12 answers.
-    const result = deriveRevealData(base, answers);
 
     setGuzzlerData(result);
     setCoraComment(
