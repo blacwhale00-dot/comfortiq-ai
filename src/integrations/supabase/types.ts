@@ -345,6 +345,53 @@ export type Database = {
         }
         Relationships: []
       }
+      report_requests: {
+        Row: {
+          attempts: number
+          created_at: string
+          email: string
+          id: string
+          last_error: string | null
+          pdf_url: string | null
+          provider_id: string | null
+          quiz_session_id: string
+          sent_at: string | null
+          status: string
+        }
+        Insert: {
+          attempts?: number
+          created_at?: string
+          email: string
+          id?: string
+          last_error?: string | null
+          pdf_url?: string | null
+          provider_id?: string | null
+          quiz_session_id: string
+          sent_at?: string | null
+          status?: string
+        }
+        Update: {
+          attempts?: number
+          created_at?: string
+          email?: string
+          id?: string
+          last_error?: string | null
+          pdf_url?: string | null
+          provider_id?: string | null
+          quiz_session_id?: string
+          sent_at?: string | null
+          status?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "report_requests_quiz_session_id_fkey"
+            columns: ["quiz_session_id"]
+            isOneToOne: true
+            referencedRelation: "quiz_sessions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Views: {
       [_ in never]: never

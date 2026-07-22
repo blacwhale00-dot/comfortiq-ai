@@ -11,7 +11,6 @@ import UnlockProgress from "@/components/quiz/UnlockProgress";
 import { MAX_UNLOCK_VALUE } from "@/lib/guzzler-reveal";
 import { UPLOAD_SLOTS, computeUploadProgress, type UploadSlotId } from "@/lib/upload-progress";
 import { supabase } from "@/integrations/supabase/client";
-import type { TablesUpdate } from "@/integrations/supabase/types";
 
 // Book-a-free-audit destination from the Build Order.
 const BOOK_AUDIT_URL = "https://app.smbsolution.ai/audit?ref=dma-8d24de6b";
@@ -28,6 +27,7 @@ export default function TrophyPage() {
   const [stage, setStage] = useState<Stage>("capture");
   const [email, setEmail] = useState("");
   const [touched, setTouched] = useState(false);
+  const [sendError, setSendError] = useState(false);
 
   const emailValid = EMAIL_RE.test(email.trim());
   const showError = touched && !emailValid;
@@ -80,24 +80,33 @@ export default function TrophyPage() {
     setTouched(true);
     if (!emailValid || stage === "sending") return;
 
-    setStage("sending");
-
-    // MVP handoff: persist the report email + flag the session so a real
-    // PDF/email backend can pick it up later. We don't block the confirmation
-    // on the DB write — the lead has done their part.
-    if (sessionId) {
-      const update: TablesUpdate<"quiz_sessions"> = {
-        email: email.trim(),
-        funnel_status: "report_requested",
-      };
-      try {
-        await supabase.from("quiz_sessions").update(update).eq("id", sessionId);
-      } catch (err) {
-        console.error("Failed to save report email:", err);
-      }
+    // No session means there's no GOLD result to hand off — shouldn't happen in
+    // the real funnel (you reach /trophy via /unlock), but fail honestly if it does.
+    if (!sessionId) {
+      setSendError(true);
+      return;
     }
 
-    setStage("confirmed");
+    setSendError(false);
+    setStage("sending");
+
+    // Trigger the server-side report handoff. The send-report edge function
+    // re-verifies GOLD, records the request idempotently, and advances
+    // funnel_status — the actual PDF render + email run behind this same call
+    // (Phase 3 generator). We only confirm to the homeowner once it's accepted.
+    try {
+      const { data, error } = await supabase.functions.invoke("send-report", {
+        body: { sessionId, email: email.trim() },
+      });
+      if (error || (data && data.error)) {
+        throw error ?? new Error(data.error);
+      }
+      setStage("confirmed");
+    } catch (err) {
+      console.error("Report handoff failed:", err);
+      setSendError(true);
+      setStage("capture");
+    }
   };
 
   return (
@@ -145,7 +154,10 @@ export default function TrophyPage() {
                   placeholder="you@email.com"
                   value={email}
                   disabled={stage === "sending"}
-                  onChange={(e) => setEmail(e.target.value)}
+                  onChange={(e) => {
+                    setEmail(e.target.value);
+                    if (sendError) setSendError(false);
+                  }}
                   onBlur={() => setTouched(true)}
                   onKeyDown={(e) => {
                     if (e.key === "Enter") handleSend();
@@ -156,6 +168,11 @@ export default function TrophyPage() {
               </div>
               {showError && (
                 <p className="text-xs text-destructive">Please enter a valid email address.</p>
+              )}
+              {sendError && !showError && (
+                <p className="text-xs text-destructive">
+                  We couldn't send that just now. Please try again in a moment.
+                </p>
               )}
             </div>
 
