@@ -40,10 +40,9 @@ DATA SOURCES                          REGISTRY                    DELIVERY
 │ Manufacturer programs    │    │ • stackability rules  │    │ → status tracking       │
 │  (Carrier/Trane/Lennox/  │───▶│ • verification        │    │                         │
 │  Goodman/Daikin)         │    │   timestamp + source  │───▶│ Contractor payout       │
-│ Federal: IRA 25C credit  │    │ • confidence score    │    │ paperwork (point-of-    │
-│  (30% up to $2k HP),     │───▶│                        │    │ sale where supported)   │
-│  HEAR (up to $14k,       │    │ Refresh: scraper cron │    │                         │
-│  income-qualified)       │    │ + verification queue  │    │                         │
+│ Federal: 25C TERMINATED     │    │                        │    │                         │
+│  after 12/31/25 (see §8.4); │───▶│ Refresh: scraper cron │    │                         │
+│  HEAR status varies by state│    │ + verification queue  │    │                         │
 └─────────────────────────┘    └──────────────────────┘    └────────────────────────┘
 ```
 
@@ -93,4 +92,55 @@ Per licensed market: one registry seeding run + territory map = the contractor's
 
 ---
 
-*Filed by Hermes per file-first workflow. No build action taken. Awaiting Will's go-ahead → Fable 5 scoping → K3 sequencing after speed-to-lead phases.*
+## 7. The Solar Playbook — Incentive-Driven Market Selection (Will's field law)
+
+From Will's solar industry experience: solar virtual reps didn't sell everywhere — **they targeted the most-incentivized states** (utility rebates, net metering, ITC) because *the savings sold the system*. HVAC has never done this. We do it first.
+
+**Consequence:** the rebate registry isn't just a quote tool — it's the **expansion map.** Build an **Incentive-Density Index** per state/market:
+
+```
+Incentive-Density Index = utility rebate $ available
+                        + manufacturer program $ active
+                        + state/local program $
+                        + net-metering-equivalent policies (where relevant)
+                        − application friction (paperwork burden score)
+```
+
+- **LeadAvatar expansion = ranked by this index.** Highest-density markets get seeded first — the pitch to licensees in those markets is instant ("your homeowners are leaving $X on the table and your reps don't know it").
+- **Consumer marketing targets the same map.** Content angle per market: "Homeowners in [state] are owed $X in HVAC incentives — here's how to check yours."
+- **Cora is state-programmable, not state-hardcoded.** Per-market **state packs**: territory maps, program rules, stacking logic, disclosure templates, application methods. New state = load a state pack, not a rebuild. Her heavy lifting is configuration-driven.
+
+## 8. Rebate Payment-Timing Guardrails (Will's field law — NON-NEGOTIABLE)
+
+Will's canonical example: **Lennox offers up to $1,000 on premium equipment — but the homeowner doesn't see that money until ~4 weeks AFTER install.** The homeowner pays full price at point of sale and gets reimbursed later by the utility or manufacturer. Failure to disclose this = angry customers, blown trust, cancelled deals.
+
+### 8.1 The three payment-timing classes (every registry row carries one)
+
+| Class | When homeowner gets money | Disclosure required at |
+|---|---|---|
+| **INSTANT / point-of-sale** | Deducted at purchase (contractor-submitted) | Quote — "applied today" |
+| **POST-INSTALL mail-in/online** | Weeks after install (typically 4-8) — e.g., Lennox $1,000 | Quote AND application AND post-install reminder |
+| **TAX CREDIT** | Next tax filing | Quote — "claimed on your taxes, not a check" |
+
+### 8.2 Mandatory disclosure language (baked into Cora + calculator + proposal)
+
+For every POST-INSTALL or TAX CREDIT item in an incentive stack, the net-price display MUST show:
+
+> *"$X comes back to you after installation — typically 4-8 weeks from [utility/manufacturer]. Your price today is $Y; you receive $X back later. Timing varies by program."*
+
+- The **"price today"** and **"money back later"** numbers are ALWAYS shown separately — never collapsed into a single net figure without the timing note attached.
+- Cora repeats the timing disclosure conversationally at quote time AND at application-submission time. Post-install, she sends the "your rebate is on its way / here's how to check status" touch — turning a waiting period into a trust moment instead of a complaint.
+- Financing presentations separate the two: the loan is against the TODAY price unless the program is point-of-sale.
+
+### 8.3 Why this is a weapon, not just compliance
+
+Every competitor either doesn't know the rebates exist or buries the timing in fine print. **Cora telling the homeowner the truth about WHEN the money arrives — before they ask — is the trust-first brand in action.** The delayed rebate, disclosed properly, becomes a post-install delight ("your check's coming!") instead of a dispute.
+
+### 8.4 Live-status correction log (proof the staleness layer earns its keep)
+
+- **25C (the "$2,000 heat pump credit"): TERMINATED for property placed in service after 12/31/2025** (Will's field intel, matches the July 2025 budget law). The original draft of this addendum listed it as active — exactly the kind of stale data that kills trust. The registry's `status: active|expiring|expired` field + `verified_at` timestamps exist for precisely this reason. HEAR-style state-run rebate programs vary by state rollout — state packs track each one's live status individually.
+- **Lesson encoded:** every incentive in the registry has a lifecycle. Cora never presents an `expired` row as available, and `expiring` rows get urgency framing with the deadline stated.
+
+---
+
+*Filed by Hermes per file-first workflow. §7-§8 added 2026-07-23 from Will's solar-industry + field intel. No build action taken. Awaiting Will's go-ahead → Fable 5 scoping → K3 sequencing after speed-to-lead phases.*
