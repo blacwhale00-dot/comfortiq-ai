@@ -114,6 +114,13 @@ instant_call_queue (id uuid pk default gen_random_uuid(),
                     lead_id uuid references leads(id),
                     created_at timestamptz default now(),
                     notified_at timestamptz, status text)  -- waiting | notified | expired
+
+-- Auto-ON availability windows (Will-defined, editable via Telegram)
+will_availability_schedule (id uuid pk default gen_random_uuid(),
+                    name text,              -- 'commute_am', 'lunch', 'commute_pm'
+                    days_of_week int[],     -- {1,2,3,4,5}
+                    start_time time, end_time time,
+                    enabled boolean default true)
 ```
 
 **Event types to add to the canvasser enum:** `instant_call_requested`, `instant_call_held`, `instant_call_timeout`, `evening_appointment_booked` (or reuse `call_booked` with payload.channel = instant|evening — Fable's call, keep the event stream clean).
@@ -137,7 +144,7 @@ instant_call_queue (id uuid pk default gen_random_uuid(),
 1. AI disclosure stays first-message — the instant call is with **Will (human)**, Cora frames it as such
 2. Cora never quotes prices on the path to the call — "Will custom-builds your numbers"
 3. The 4-minute timeout fallback is a hard requirement — a consumer left hanging in an empty meeting room is a trust-killer worse than no instant option
-4. Will's toggle defaults to OFF on app restart / new day — he opts INTO live availability deliberately (protects him during RS Andrews appointments)
+4. Will's availability is OFF unless inside a Will-defined auto-ON window or manually enabled — auto schedule can only fire within windows Will explicitly set (protects RS Andrews appointments); manual `/busy` override always wins
 5. All claims language rules apply to calculator + Cora copy around it ("potential/typical/results vary")
 
 ---
@@ -166,12 +173,20 @@ instant_call_queue (id uuid pk default gen_random_uuid(),
 
 ---
 
-## 7. Open Questions for Will (Fable — confirm before K3 builds)
+## 7. Decision Log (was: Open Questions — ANSWERED by Will 2026-07-23)
 
-1. **Zoom API vs Google Meet vs static PMI** for instant calls? (Hermes rec: Zoom API) — **PRICING ANSWERED 07-23, see §8**
-2. 4-minute timeout — right number? (Alternatives: 3 or 5)
-3. Should the availability toggle have a scheduled auto-ON window (e.g., known commute/lunch windows) or manual-only?
-4. After a held instant call, does Cora auto-send the three-outcome-close recap + next-step CTA, or does Will trigger it manually from Telegram?
+1. **Zoom API vs Google Meet vs static PMI** → ✅ **Zoom API** (Server-to-Server OAuth, instant meetings) — pricing confirmed $0 on Basic, see §8
+2. **Timeout** → **4 minutes** (default stands unless Will revises)
+3. **Availability toggle** → ✅ **AUTO-ON scheduled windows** (e.g., commute, lunch) + manual Telegram override (`/available` `/busy`). Spec:
+   - `will_availability_schedule` config: named windows with day-of-week + start/end times (Will defines the actual windows — commute, lunch, etc. — editable via Telegram)
+   - Auto-ON flips `is_live=true` at window start, auto-OFF at window end
+   - **Manual override always wins:** a `/busy` during a window suppresses auto-ON until the next window; an `/available` outside windows goes live immediately
+   - Guardrail #4 amended: default state is OFF *unless inside a Will-defined window* — auto schedule can only fire within windows Will explicitly set (protects RS Andrews appointments)
+4. **Post-call recap** → ✅ **Cora AUTO-SENDS the three-outcome-close recap + next-step CTA** after every `instant_call_held` — no manual trigger. Spec:
+   - Fires on call end (Zoom webhook `meeting.ended` or session timeout)
+   - Recap content: what was discussed template + the three-outcome frame (confirmed / adjusted / walk-away refund) + next-step CTA (book evening follow-up or home visit)
+   - Logged to `cora_conversations`; compliance filter applies as always
+   - Will can still jump in manually any time — auto-recap doesn't lock him out
 
 ---
 
@@ -196,4 +211,4 @@ instant_call_queue (id uuid pk default gen_random_uuid(),
 
 ---
 
-*Filed by Hermes per file-first workflow. Awaiting Will's answers to §7, then Fable 5 review, then K3 implementation.*
+*Filed by Hermes per file-first workflow. §7 decisions LOCKED by Will 2026-07-23. Ready for Fable 5 review → K3 implementation.*
