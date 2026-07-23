@@ -44,6 +44,12 @@ export interface CalcConfig {
     age_gte_12: number;
     band_drinking_bleeding: number;
   };
+  conversion_adders: {
+    plenum_usd: { low: number; high: number };
+    air_handler_incremental_usd: { low: number; high: number };
+    panel_possible_usd: { low: number; high: number };
+    marginal_net_rebate_threshold_usd: number;
+  };
 }
 
 // Fallback mirror of the repair_calc_config seed — used only when the config
@@ -78,9 +84,23 @@ export const DEFAULT_CONFIG: CalcConfig = {
     age_gte_12: 10,
     band_drinking_bleeding: 10,
   },
+  // Addendum 1 §3 — PLACEHOLDERS pending Will's Atlanta market review.
+  conversion_adders: {
+    plenum_usd: { low: 1200, high: 2500 },
+    air_handler_incremental_usd: { low: 800, high: 1800 },
+    panel_possible_usd: { low: 0, high: 3000 },
+    marginal_net_rebate_threshold_usd: 1000,
+  },
 };
 
 // ---------- Rebate resolution ----------
+
+export interface RebateScopeRequirements {
+  full_conversion_required?: boolean;
+  eligibility_rule_verified?: boolean;
+  /** Income-tier coverage multipliers, e.g. {"<=80_ami": 1.0, "80_150_ami": 0.5}. */
+  tier_coverage?: Record<string, number>;
+}
 
 export interface RebateProgramRow {
   program_name: string;
@@ -92,6 +112,9 @@ export interface RebateProgramRow {
   fuel_switching_allowed: boolean | null;
   fuel_switching_ends_on: string | null; // ISO date
   status: string;
+  scope_requirements?: RebateScopeRequirements | null;
+  friction_level?: string | null;
+  display_mode?: string | null; // 'headline' | 'conditional' | 'hidden'
 }
 
 export interface ResolvedRebate {
@@ -100,6 +123,13 @@ export interface ResolvedRebate {
   /** false = income-dependent and the homeowner hasn't answered the income
    * question — present as "you may qualify for up to $X". */
   certain: boolean;
+  /** 'unverified' = the program's eligibility rule is disputed/unconfirmed —
+   * Cora must hedge, never promise dollars (Addendum 1 §2). */
+  confidence: "verified" | "unverified";
+  /** Qualifying requires a complete conversion (HP + air handler) — the
+   * Replace-side math must carry conversion adders (Addendum 1 §3). */
+  fullConversionRequired: boolean;
+  displayMode: "headline" | "conditional" | "hidden";
 }
 
 export interface RebateResolution {
@@ -137,17 +167,110 @@ export function resolveRebates(
         continue;
     }
 
+    if (p.display_mode === "hidden") continue;
+
+    const scope = p.scope_requirements ?? {};
+    const base = {
+      confidence: (scope.eligibility_rule_verified === false ? "unverified" : "verified") as
+        | "verified"
+        | "unverified",
+      fullConversionRequired: scope.full_conversion_required === true,
+      displayMode: (p.display_mode ?? "conditional") as "headline" | "conditional" | "hidden",
+    };
+
     if (p.income_qualified) {
       if (opts.incomeTier === "none") continue; // answered: not income-qualified
-      const certain = opts.incomeTier === "<=80_ami" || opts.incomeTier === "80_150_ami";
-      applied.push({ name: p.program_name, amountUsd: p.max_amount_usd, certain });
+      const known = opts.incomeTier === "<=80_ami" || opts.incomeTier === "80_150_ami";
+      // Tier-correct ceiling: 80-150% AMI covers ~50%, not the full cap.
+      const coverage = known ? scope.tier_coverage?.[opts.incomeTier!] ?? 1 : 1;
+      applied.push({
+        name: p.program_name,
+        amountUsd: p.max_amount_usd * coverage,
+        certain: known,
+        ...base,
+      });
     } else {
-      applied.push({ name: p.program_name, amountUsd: p.max_amount_usd, certain: true });
+      applied.push({ name: p.program_name, amountUsd: p.max_amount_usd, certain: true, ...base });
     }
   }
   const totalCertainUsd = applied.filter((r) => r.certain).reduce((s, r) => s + r.amountUsd, 0);
   const totalPossibleUsd = applied.reduce((s, r) => s + r.amountUsd, 0);
   return { applied, totalCertainUsd, totalPossibleUsd };
+}
+
+// ---------- Rebate partition: realism pass (Addendum 1 §3) ----------
+// A rebate that requires a full conversion is not free money on a gas home —
+// it arrives with plenum + air-handler adders. Partition every resolved rebate
+// into: headline (clean money), conversion-path (in the math for gas homes when
+// net-positive, presented as the optional electrification route, never
+// headlined), or footnote (excluded from the math entirely).
+
+export interface RebatePartition {
+  headline: ResolvedRebate[];
+  conversionPath: ResolvedRebate[];
+  footnote: { rebate: ResolvedRebate; reason: string }[];
+  /** Adders applied to the Replace side when a conversion rebate is in play. */
+  conversionAdderUsd: number;
+  /** rebate − adder midpoint for the conversion route (null = no conversion rebate). */
+  netConversionEffectUsd: number | null;
+}
+
+const GAS_BASED: SystemType[] = ["gas_furnace_ac"];
+const ELECTRIC_TO_ELECTRIC: SystemType[] = ["heat_pump", "electric_resistance"];
+
+export function partitionRebates(
+  resolution: RebateResolution,
+  systemType: SystemType,
+  config: CalcConfig = DEFAULT_CONFIG,
+): RebatePartition {
+  const adders = config.conversion_adders;
+  const mid = (r: { low: number; high: number }) => (r.low + r.high) / 2;
+  // Panel work is "possible, site-dependent" — excluded from the midpoint,
+  // surfaced in language only.
+  const adderMid = mid(adders.plenum_usd) + mid(adders.air_handler_incremental_usd);
+
+  const out: RebatePartition = {
+    headline: [],
+    conversionPath: [],
+    footnote: [],
+    conversionAdderUsd: 0,
+    netConversionEffectUsd: null,
+  };
+
+  for (const r of resolution.applied) {
+    if (!r.fullConversionRequired) {
+      out.headline.push(r);
+      continue;
+    }
+    // Full-conversion rebate:
+    if (ELECTRIC_TO_ELECTRIC.includes(systemType)) {
+      // Already electric — applies cleanly, no adders. The rebate-advantaged segment.
+      out.headline.push(r);
+    } else if (GAS_BASED.includes(systemType)) {
+      const net = r.amountUsd - adderMid;
+      out.netConversionEffectUsd = net;
+      if (net < adders.marginal_net_rebate_threshold_usd) {
+        out.footnote.push({ rebate: r, reason: "marginal_conversion_economics" });
+      } else {
+        // In the math (with adders), but presented as the electrification
+        // path — never a headline dollar to a gas home (Addendum 1 §4.1).
+        out.conversionPath.push(r);
+        out.conversionAdderUsd = adderMid;
+      }
+    } else {
+      // unknown / straight_cool: can't assess the conversion honestly yet.
+      out.footnote.push({ rebate: r, reason: "system_type_unknown" });
+    }
+  }
+  return out;
+}
+
+/** Electric-to-electric homes with aging equipment are the highest-rebate-
+ * leverage segment post-8/10 (Addendum 1 §6). Implemented as a separate lead
+ * flag (not a regret-weight change) so segmentation stays orthogonal to
+ * regret; stored on the lead file via funnel_events metadata. */
+export function computeRebateLeverage(systemType: SystemType, ageYears: number | null): boolean {
+  return ELECTRIC_TO_ELECTRIC.includes(systemType) && (ageYears ?? 0) >= 10;
 }
 
 // ---------- The calculator ----------
@@ -176,6 +299,8 @@ export interface CalcOutputs {
   reasoningSummary: string;
   /** Data gaps that lowered confidence — surfaced honestly to the homeowner. */
   missingData: string[];
+  /** Realism pass over rebates: headline vs conversion-path vs footnote. */
+  rebatePartition: RebatePartition;
 }
 
 export function monthlyPayment(principal: number, apr: number, termMonths: number): number {
@@ -212,8 +337,21 @@ export function computeRepairReplace(
     config.replacement_cost_bands[inputs.systemType] ?? config.replacement_cost_bands.unknown;
   const estReplacementCostUsd = (bandCfg.low + bandCfg.high) / 2;
 
-  // Net of certain rebates only — uncertain ones are shown as "may qualify".
-  const netReplacement = Math.max(estReplacementCostUsd - rebates.totalCertainUsd, 0);
+  // Realism pass: partition rebates; conversion rebates on gas homes bring
+  // their adders into the Replace-side principal, marginal ones drop to
+  // footnote and out of the math entirely (Addendum 1 §3).
+  const rebatePartition = partitionRebates(rebates, inputs.systemType, config);
+  const countedRebates = [...rebatePartition.headline, ...rebatePartition.conversionPath];
+  const certainRebateUsd = countedRebates
+    .filter((r) => r.certain)
+    .reduce((s, r) => s + r.amountUsd, 0);
+
+  // Net of certain, counted rebates only — uncertain ones are shown as "may
+  // qualify"; footnoted ones never touch the math.
+  const netReplacement = Math.max(
+    estReplacementCostUsd + rebatePartition.conversionAdderUsd - certainRebateUsd,
+    0,
+  );
   const estReplacementMonthlyUsd = monthlyPayment(
     netReplacement,
     config.financing.apr,
@@ -285,6 +423,7 @@ export function computeRepairReplace(
     confidence,
     reasoningSummary: reasoning,
     missingData,
+    rebatePartition,
   };
 }
 

@@ -48,15 +48,47 @@ export default function RepairReplaceResults({ result }: { result: RepairAnalysi
 
       <p className="text-sm text-foreground leading-relaxed mb-4">{outputs.reasoningSummary}</p>
 
-      {rebates.applied.length > 0 && (
+      {/* Rebate story, realism-partitioned (Addendum 1): the $900 discount and
+          reliable headline rebates lead; conversion routes are an optional
+          path with honest out-of-pocket framing; unverified rules are hedged,
+          never dollar-certain. */}
+      {(outputs.rebatePartition.headline.length > 0 ||
+        outputs.rebatePartition.conversionPath.length > 0) && (
         <div className="rounded-xl bg-primary/5 border border-primary/20 p-4 mb-4 text-sm">
-          <p className="font-semibold text-foreground mb-1">On the replace side, stackable with your $900 discount:</p>
-          {rebates.applied.map((r) => (
+          <p className="font-semibold text-foreground mb-1">
+            On the replace side, stackable with your $900 discount:
+          </p>
+          {outputs.rebatePartition.headline.map((r) =>
+            r.confidence === "unverified" ? (
+              <p key={r.name} className="text-muted-foreground">
+                • {r.name}: there may be rebate money here — the rules just changed and we
+                verify eligibility as part of your assessment
+              </p>
+            ) : (
+              <p key={r.name} className="text-muted-foreground">
+                • {r.name}:{" "}
+                {r.certain
+                  ? `up to ${fmtUsd(r.amountUsd)}`
+                  : `somewhere between $0 and ${fmtUsd(r.amountUsd)} depending on income — we check this for you`}
+              </p>
+            ),
+          )}
+          {outputs.rebatePartition.conversionPath.map((r) => (
             <p key={r.name} className="text-muted-foreground">
-              • {r.name}: {r.certain ? `up to ${fmtUsd(r.amountUsd)}` : `you may qualify for up to ${fmtUsd(r.amountUsd)} — we can check`}
+              • Going all-electric? {r.name}{" "}
+              {r.confidence === "unverified"
+                ? "may apply — the rules just changed and we verify eligibility as part of your assessment."
+                : `can offset the conversion — worth roughly ${fmtUsd(r.amountUsd)} against about ${fmtUsd(outputs.rebatePartition.conversionAdderUsd)} of conversion work (ductwork and air handler; panel work possible depending on your home).`}
             </p>
           ))}
         </div>
+      )}
+      {outputs.rebatePartition.footnote.length > 0 && (
+        <p className="text-xs text-muted-foreground mb-4">
+          An all-electric conversion route exists if reducing your energy footprint matters to
+          you — it qualifies for rebates but typically costs more out of pocket. We can walk
+          through it on your verification visit.
+        </p>
       )}
 
       <p className="text-xs text-muted-foreground leading-relaxed">

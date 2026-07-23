@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
   DEFAULT_CONFIG,
+  computeRebateLeverage,
   computeRegretScore,
   computeRepairReplace,
   isFuelSwitch,
@@ -40,6 +41,13 @@ const GA_HEAR: RebateProgramRow = {
   fuel_switching_allowed: true,
   fuel_switching_ends_on: "2026-08-10",
   status: "active",
+  scope_requirements: {
+    full_conversion_required: true,
+    eligibility_rule_verified: false,
+    tier_coverage: { "<=80_ami": 1.0, "80_150_ami": 0.5 },
+  },
+  friction_level: "high",
+  display_mode: "conditional",
 };
 const HEIP: RebateProgramRow = {
   program_name: "Georgia Power HEIP",
@@ -51,6 +59,23 @@ const HEIP: RebateProgramRow = {
   fuel_switching_allowed: null,
   fuel_switching_ends_on: null,
   status: "active",
+  scope_requirements: {},
+  friction_level: "low",
+  display_mode: "headline",
+};
+const HOMES_HER: RebateProgramRow = {
+  program_name: "GA HOMES (Home Efficiency Rebates)",
+  state: "GA",
+  utility_or_emc: null,
+  max_amount_usd: 5000,
+  income_qualified: false,
+  income_tier: null,
+  fuel_switching_allowed: null,
+  fuel_switching_ends_on: null,
+  status: "ended", // excluded by product decision 2026-07-23
+  scope_requirements: {},
+  friction_level: "high",
+  display_mode: "hidden",
 };
 
 describe("recommendation ladder — the personas", () => {
@@ -233,17 +258,121 @@ describe("rebate resolution", () => {
     expect(other.applied.map((a) => a.name)).not.toContain("Georgia Power HEIP");
   });
 
-  it("certain rebates reduce the financed replacement estimate", () => {
+  it("certain no-strings rebates reduce the financed replacement estimate", () => {
+    const clean = { confidence: "verified" as const, fullConversionRequired: false, displayMode: "headline" as const };
     const withRebates = computeRepairReplace(inputs({}), DEFAULT_CONFIG, {
-      applied: [{ name: "GA HEAR", amountUsd: 8000, certain: true }],
-      totalCertainUsd: 8000,
-      totalPossibleUsd: 8000,
+      applied: [{ name: "Georgia Power HEIP", amountUsd: 1000, certain: true, ...clean }],
+      totalCertainUsd: 1000,
+      totalPossibleUsd: 1000,
     });
     const without = computeRepairReplace(inputs({}));
     expect(withRebates.estReplacementMonthlyUsd).toBeLessThan(without.estReplacementMonthlyUsd);
     expect(withRebates.estReplacementMonthlyUsd).toBeCloseTo(
-      monthlyPayment(12500 - 8000, 0.0899, 120), 2,
+      monthlyPayment(12500 - 1000, 0.0899, 120), 2,
     );
+  });
+});
+
+describe("Addendum 1 — rebate realism", () => {
+  const conversionRebate = (amountUsd: number, verified = false) => ({
+    applied: [{
+      name: "GA HEAR",
+      amountUsd,
+      certain: true,
+      confidence: (verified ? "verified" : "unverified") as "verified" | "unverified",
+      fullConversionRequired: true,
+      displayMode: "conditional" as const,
+    }],
+    totalCertainUsd: amountUsd,
+    totalPossibleUsd: amountUsd,
+  });
+  // Default adder midpoint = (1200+2500)/2 + (800+1800)/2 = 1850 + 1300 = 3150
+
+  it("HER/HOMES (status=ended) never resolves, regardless of income tier", () => {
+    for (const tier of ["<=80_ami", "80_150_ami", "none", null] as const) {
+      const r = resolveRebates([HOMES_HER, HEIP], {
+        state: "GA", utility: "Georgia Power", incomeTier: tier, fuelSwitchNeeded: false, onDate: new Date("2026-08-01"),
+      });
+      expect(r.applied.map((a) => a.name).join()).not.toContain("HOMES");
+    }
+  });
+
+  it("gas home + full-conversion rebate: adders enter the Replace math, net effect computed", () => {
+    const out = computeRepairReplace(
+      inputs({ systemType: "gas_furnace_ac" }), DEFAULT_CONFIG, conversionRebate(8000),
+    );
+    expect(out.rebatePartition.conversionPath).toHaveLength(1);
+    expect(out.rebatePartition.conversionAdderUsd).toBe(3150);
+    expect(out.rebatePartition.netConversionEffectUsd).toBe(8000 - 3150);
+    // Principal = 12,500 + 3,150 adders − 8,000 rebate
+    expect(out.estReplacementMonthlyUsd).toBeCloseTo(monthlyPayment(12500 + 3150 - 8000, 0.0899, 120), 2);
+  });
+
+  it("marginal net rebate (< $1,000) is demoted to footnote and leaves the math", () => {
+    const out = computeRepairReplace(
+      inputs({ systemType: "gas_furnace_ac" }), DEFAULT_CONFIG, conversionRebate(4000), // net 850
+    );
+    expect(out.rebatePartition.footnote).toHaveLength(1);
+    expect(out.rebatePartition.footnote[0].reason).toBe("marginal_conversion_economics");
+    expect(out.rebatePartition.conversionAdderUsd).toBe(0);
+    // Math is untouched by the demoted rebate.
+    expect(out.estReplacementMonthlyUsd).toBeCloseTo(monthlyPayment(12500, 0.0899, 120), 2);
+  });
+
+  it("electric-to-electric home: full rebate applies cleanly, zero adders", () => {
+    const out = computeRepairReplace(
+      inputs({ systemType: "heat_pump" }), DEFAULT_CONFIG, conversionRebate(8000),
+    );
+    expect(out.rebatePartition.headline).toHaveLength(1);
+    expect(out.rebatePartition.conversionAdderUsd).toBe(0);
+    // heat_pump band midpoint = (9500+16000)/2 = 12,750
+    expect(out.estReplacementMonthlyUsd).toBeCloseTo(monthlyPayment(12750 - 8000, 0.0899, 120), 2);
+  });
+
+  it("unknown system + conversion rebate: honest footnote, never headlined", () => {
+    const out = computeRepairReplace(
+      inputs({ systemType: "unknown" }), DEFAULT_CONFIG, conversionRebate(8000),
+    );
+    expect(out.rebatePartition.footnote[0].reason).toBe("system_type_unknown");
+    expect(out.rebatePartition.headline).toHaveLength(0);
+  });
+
+  it("unverified eligibility rule carries confidence: 'unverified' through the resolver", () => {
+    const r = resolveRebates([GA_HEAR], {
+      state: "GA", utility: null, incomeTier: "<=80_ami", fuelSwitchNeeded: false, onDate: new Date("2026-08-01"),
+    });
+    expect(r.applied[0].confidence).toBe("unverified");
+    const verified = resolveRebates([HEIP], {
+      state: "GA", utility: "Georgia Power", incomeTier: null, fuelSwitchNeeded: false, onDate: new Date("2026-08-01"),
+    });
+    expect(verified.applied[0].confidence).toBe("verified");
+  });
+
+  it("tier-correct ceilings: 80-150% AMI gets 50% coverage ($4,000, not $8,000)", () => {
+    const mid = resolveRebates([GA_HEAR], {
+      state: "GA", utility: null, incomeTier: "80_150_ami", fuelSwitchNeeded: false, onDate: new Date("2026-08-01"),
+    });
+    expect(mid.applied[0].amountUsd).toBe(4000);
+    const low = resolveRebates([GA_HEAR], {
+      state: "GA", utility: null, incomeTier: "<=80_ami", fuelSwitchNeeded: false, onDate: new Date("2026-08-01"),
+    });
+    expect(low.applied[0].amountUsd).toBe(8000);
+  });
+
+  it("display_mode 'hidden' rows never resolve", () => {
+    const hidden = { ...HEIP, display_mode: "hidden" };
+    const r = resolveRebates([hidden], {
+      state: "GA", utility: "Georgia Power", incomeTier: null, fuelSwitchNeeded: false, onDate: new Date("2026-08-01"),
+    });
+    expect(r.applied).toHaveLength(0);
+  });
+
+  it("rebate leverage flags aging electric-to-electric homes only", () => {
+    expect(computeRebateLeverage("heat_pump", 12)).toBe(true);
+    expect(computeRebateLeverage("electric_resistance", 15)).toBe(true);
+    expect(computeRebateLeverage("heat_pump", 6)).toBe(false);
+    expect(computeRebateLeverage("gas_furnace_ac", 14)).toBe(false);
+    expect(computeRebateLeverage("unknown", 14)).toBe(false);
   });
 });
 

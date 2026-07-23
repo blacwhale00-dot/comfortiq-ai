@@ -399,7 +399,9 @@ export type Database = {
         Row: {
           admin_agency: string | null
           deadline_notes: string | null
+          display_mode: string | null
           eligible_measures: string[] | null
+          friction_level: string | null
           fuel_switching_allowed: boolean | null
           fuel_switching_ends_on: string | null
           id: string
@@ -409,6 +411,7 @@ export type Database = {
           max_amount_usd: number | null
           point_of_sale: boolean | null
           program_name: string
+          scope_requirements: Json | null
           source_url: string | null
           state: string
           status: string
@@ -417,7 +420,9 @@ export type Database = {
         Insert: {
           admin_agency?: string | null
           deadline_notes?: string | null
+          display_mode?: string | null
           eligible_measures?: string[] | null
+          friction_level?: string | null
           fuel_switching_allowed?: boolean | null
           fuel_switching_ends_on?: string | null
           id?: string
@@ -427,6 +432,7 @@ export type Database = {
           max_amount_usd?: number | null
           point_of_sale?: boolean | null
           program_name: string
+          scope_requirements?: Json | null
           source_url?: string | null
           state: string
           status?: string
@@ -435,7 +441,9 @@ export type Database = {
         Update: {
           admin_agency?: string | null
           deadline_notes?: string | null
+          display_mode?: string | null
           eligible_measures?: string[] | null
+          friction_level?: string | null
           fuel_switching_allowed?: boolean | null
           fuel_switching_ends_on?: string | null
           id?: string
@@ -445,6 +453,7 @@ export type Database = {
           max_amount_usd?: number | null
           point_of_sale?: boolean | null
           program_name?: string
+          scope_requirements?: Json | null
           source_url?: string | null
           state?: string
           status?: string

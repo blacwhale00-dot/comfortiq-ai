@@ -13,6 +13,7 @@ import {
   type RepairFacts,
 } from "@/lib/repair-flow";
 import {
+  computeRebateLeverage,
   computeRegretScore,
   computeRepairReplace,
   isFuelSwitch,
@@ -114,7 +115,7 @@ export default function RepairHistoryChat({ sessionId, systemAgeYears, guzzlerSc
     try {
       const [cfgRes, rebRes] = await Promise.all([
         supabase.from("repair_calc_config").select("key, value"),
-        supabase.from("rebate_programs").select("program_name, state, utility_or_emc, max_amount_usd, income_qualified, income_tier, fuel_switching_allowed, fuel_switching_ends_on, status").eq("state", "GA"),
+        supabase.from("rebate_programs").select("program_name, state, utility_or_emc, max_amount_usd, income_qualified, income_tier, fuel_switching_allowed, fuel_switching_ends_on, status, scope_requirements, friction_level, display_mode").eq("state", "GA"),
       ]);
       if (cfgRes.data?.length) {
         const byKey = Object.fromEntries(cfgRes.data.map((r) => [r.key, r.value]));
@@ -178,6 +179,9 @@ export default function RepairHistoryChat({ sessionId, systemAgeYears, guzzlerSc
         confidence: outputs.confidence,
         // replace -> hot queue; repair/monitor -> 2027 long-cycle nurture
         nurture: outputs.recommendation === "replace" ? "hot" : "long_cycle",
+        // Electric-to-electric + aging = highest rebate leverage post-8/10.
+        // Gas homes get the efficiency pitch; electric homes get the rebate pitch.
+        rebate_leverage: computeRebateLeverage(systemType, systemAgeYears),
       },
     }).then(({ error }) => { if (error) console.warn("nurture tag not saved:", error.message); });
 
