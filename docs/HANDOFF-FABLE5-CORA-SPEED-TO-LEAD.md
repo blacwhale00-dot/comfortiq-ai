@@ -168,10 +168,31 @@ instant_call_queue (id uuid pk default gen_random_uuid(),
 
 ## 7. Open Questions for Will (Fable — confirm before K3 builds)
 
-1. **Zoom API vs Google Meet vs static PMI** for instant calls? (Hermes rec: Zoom API)
+1. **Zoom API vs Google Meet vs static PMI** for instant calls? (Hermes rec: Zoom API) — **PRICING ANSWERED 07-23, see §8**
 2. 4-minute timeout — right number? (Alternatives: 3 or 5)
 3. Should the availability toggle have a scheduled auto-ON window (e.g., known commute/lunch windows) or manual-only?
 4. After a held instant call, does Cora auto-send the three-outcome-close recap + next-step CTA, or does Will trigger it manually from Telegram?
+
+---
+
+## 8. Zoom API Cost Research (2026-07-23 — resolves §7 Q1)
+
+**The Zoom Meetings API itself is FREE — there is no separate API key fee.** You create a Server-to-Server OAuth app on the Zoom Marketplace at any plan level, including the free Basic plan. The only cost is the Zoom plan underneath:
+
+| Plan | Cost | Meeting cap | Verdict for us |
+|---|---|---|---|
+| **Basic (free)** | **$0** | 40 min/meeting | ✅ **Start here** — Will's parking-lot calls are ~10 min; 40-min cap never binds |
+| Pro | ~$13.33/user/mo (annual) / ~$15.99 monthly | 30 hrs | Upgrade only if calls run long or we want cloud recording |
+| Business | ~$18.33/user/mo | 30 hrs + admin features | Not needed at 1 seat |
+
+**API specifics:**
+- Server-to-Server OAuth app: free on any plan, `POST /users/me/meetings` with `type:1` creates instant meetings — exactly the Path A mechanic
+- Rate limits are per-account and far above our volume (a handful of instant meetings/day)
+- ⚠️ Don't confuse with **Zoom Build Platform / Video SDK** (pay-as-you-go credits) — that's for embedding white-label Zoom video INSIDE our own app. Not needed for v1 (we send links); revisit later if we want in-app video without the Zoom client
+
+**Comparison:** Google Meet links via Cal.com = also $0, but requires Google Workspace rail and doesn't match Will's "hop on a Zoom" mental model. Zoom free Basic + API is the cheapest path that matches the playbook language.
+
+**Decision input for Will:** $0 to start (Zoom Basic + free S2S OAuth app). Total new monthly cost for Path A = **$0**.
 
 ---
 
