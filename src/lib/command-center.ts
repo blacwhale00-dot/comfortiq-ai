@@ -225,7 +225,10 @@ export function buildDailyStats(sessions: SessionSummary[], now: Date): DailySta
     completedToday: funnel.filter(
       (s) => s.quiz_completed_at && isSameLocalDay(s.quiz_completed_at, now),
     ).length,
-    // GOLD reached today: bill uploaded and the row last moved today.
+    // GOLD reached today — approximated as "is GOLD and the row last moved
+    // today", since quiz_sessions has no gold_at timestamp. Any non-funnel edit
+    // to an old GOLD row re-counts it for that day; switch to funnel_events
+    // once the client logs them.
     goldToday: funnel.filter(
       (s) => stageRank(s.funnel_status) >= 5 && isSameLocalDay(s.updated_at, now),
     ).length,

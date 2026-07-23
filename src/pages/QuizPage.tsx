@@ -102,10 +102,11 @@ function stampQuizCompletedAt(quizSessionId: string, completedAt: string) {
 // (cora-reminders.ts) freezes the copy + send_at into each row so the worker
 // only has to send them — see plan.md. Anchored to the SAME completion instant
 // as the upload timer above so the two never drift. Fire-and-forget and
-// idempotent: the unique (quiz_session_id, milestone) constraint makes a
-// re-submit a no-op (ignoreDuplicates, so it never resets a row the worker has
-// already advanced), and any error — e.g. the table not migrated yet — is
-// logged without breaking the quiz.
+// idempotent: a plain INSERT, treating duplicate-key (23505) as success on a
+// re-submit. It must NOT be an upsert — ON CONFLICT DO NOTHING is rejected by
+// RLS (42501) because cora_reminders deliberately has no SELECT policy for
+// anon (rows hold phone numbers), and the conflict-arbitration path needs row
+// visibility. Any other error is logged without breaking the quiz.
 function persistCoraReminders(
   quizSessionId: string,
   completedAt: string,
@@ -125,9 +126,12 @@ function persistCoraReminders(
 
   void supabase
     .from("cora_reminders")
-    .upsert(rows, { onConflict: "quiz_session_id,milestone", ignoreDuplicates: true })
+    .insert(rows)
     .then(({ error }) => {
-      if (error) console.warn("cora_reminders not persisted:", error.message);
+      // 23505 = duplicate key: reminders already persisted on a prior submit.
+      if (error && error.code !== "23505") {
+        console.warn("cora_reminders not persisted:", error.message);
+      }
     });
 }
 

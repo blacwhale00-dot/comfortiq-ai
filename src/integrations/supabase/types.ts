@@ -395,6 +395,220 @@ export type Database = {
         }
         Relationships: []
       }
+      rebate_programs: {
+        Row: {
+          admin_agency: string | null
+          deadline_notes: string | null
+          eligible_measures: string[] | null
+          fuel_switching_allowed: boolean | null
+          fuel_switching_ends_on: string | null
+          id: string
+          income_qualified: boolean
+          income_tier: string | null
+          last_verified: string
+          max_amount_usd: number | null
+          point_of_sale: boolean | null
+          program_name: string
+          source_url: string | null
+          state: string
+          status: string
+          utility_or_emc: string | null
+        }
+        Insert: {
+          admin_agency?: string | null
+          deadline_notes?: string | null
+          eligible_measures?: string[] | null
+          fuel_switching_allowed?: boolean | null
+          fuel_switching_ends_on?: string | null
+          id?: string
+          income_qualified?: boolean
+          income_tier?: string | null
+          last_verified: string
+          max_amount_usd?: number | null
+          point_of_sale?: boolean | null
+          program_name: string
+          source_url?: string | null
+          state: string
+          status?: string
+          utility_or_emc?: string | null
+        }
+        Update: {
+          admin_agency?: string | null
+          deadline_notes?: string | null
+          eligible_measures?: string[] | null
+          fuel_switching_allowed?: boolean | null
+          fuel_switching_ends_on?: string | null
+          id?: string
+          income_qualified?: boolean
+          income_tier?: string | null
+          last_verified?: string
+          max_amount_usd?: number | null
+          point_of_sale?: boolean | null
+          program_name?: string
+          source_url?: string | null
+          state?: string
+          status?: string
+          utility_or_emc?: string | null
+        }
+        Relationships: []
+      }
+      repair_calc_config: {
+        Row: {
+          key: string
+          notes: string | null
+          updated_at: string
+          value: Json
+        }
+        Insert: {
+          key: string
+          notes?: string | null
+          updated_at?: string
+          value: Json
+        }
+        Update: {
+          key?: string
+          notes?: string | null
+          updated_at?: string
+          value?: Json
+        }
+        Relationships: []
+      }
+      repair_history: {
+        Row: {
+          contractor_name: string | null
+          homeowner_id: string | null
+          id: string
+          monthly_payment_usd: number | null
+          quiz_session_id: string
+          raw_conversation_extract: Json | null
+          regret_formula_version: string | null
+          repair_component: string | null
+          repair_cost_usd: number | null
+          repair_count_24mo: number | null
+          repair_date_approx: string | null
+          repair_regret_score: number | null
+          repair_within_24mo: boolean
+          reported_at: string
+          still_having_issues: boolean | null
+          was_financed: boolean | null
+        }
+        Insert: {
+          contractor_name?: string | null
+          homeowner_id?: string | null
+          id?: string
+          monthly_payment_usd?: number | null
+          quiz_session_id: string
+          raw_conversation_extract?: Json | null
+          regret_formula_version?: string | null
+          repair_component?: string | null
+          repair_cost_usd?: number | null
+          repair_count_24mo?: number | null
+          repair_date_approx?: string | null
+          repair_regret_score?: number | null
+          repair_within_24mo: boolean
+          reported_at?: string
+          still_having_issues?: boolean | null
+          was_financed?: boolean | null
+        }
+        Update: {
+          contractor_name?: string | null
+          homeowner_id?: string | null
+          id?: string
+          monthly_payment_usd?: number | null
+          quiz_session_id?: string
+          raw_conversation_extract?: Json | null
+          regret_formula_version?: string | null
+          repair_component?: string | null
+          repair_cost_usd?: number | null
+          repair_count_24mo?: number | null
+          repair_date_approx?: string | null
+          repair_regret_score?: number | null
+          repair_within_24mo?: boolean
+          reported_at?: string
+          still_having_issues?: boolean | null
+          was_financed?: boolean | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "repair_history_quiz_session_id_fkey"
+            columns: ["quiz_session_id"]
+            isOneToOne: false
+            referencedRelation: "quiz_sessions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      repair_replace_analysis: {
+        Row: {
+          active_repair_payment_usd: number | null
+          applicable_rebates: Json | null
+          created_at: string
+          cumulative_repair_cost_24mo: number | null
+          est_monthly_energy_waste_usd: number | null
+          est_replacement_cost_usd: number | null
+          est_replacement_monthly_usd: number | null
+          five_year_keep_cost_usd: number | null
+          five_year_replace_cost_usd: number | null
+          guzzler_band: string | null
+          id: string
+          quiz_session_id: string
+          reasoning_summary: string | null
+          recommendation: string
+          recommendation_confidence: string | null
+          repair_cost_pct_of_replacement: number | null
+          system_age_years: number | null
+          system_type: string | null
+        }
+        Insert: {
+          active_repair_payment_usd?: number | null
+          applicable_rebates?: Json | null
+          created_at?: string
+          cumulative_repair_cost_24mo?: number | null
+          est_monthly_energy_waste_usd?: number | null
+          est_replacement_cost_usd?: number | null
+          est_replacement_monthly_usd?: number | null
+          five_year_keep_cost_usd?: number | null
+          five_year_replace_cost_usd?: number | null
+          guzzler_band?: string | null
+          id?: string
+          quiz_session_id: string
+          reasoning_summary?: string | null
+          recommendation: string
+          recommendation_confidence?: string | null
+          repair_cost_pct_of_replacement?: number | null
+          system_age_years?: number | null
+          system_type?: string | null
+        }
+        Update: {
+          active_repair_payment_usd?: number | null
+          applicable_rebates?: Json | null
+          created_at?: string
+          cumulative_repair_cost_24mo?: number | null
+          est_monthly_energy_waste_usd?: number | null
+          est_replacement_cost_usd?: number | null
+          est_replacement_monthly_usd?: number | null
+          five_year_keep_cost_usd?: number | null
+          five_year_replace_cost_usd?: number | null
+          guzzler_band?: string | null
+          id?: string
+          quiz_session_id?: string
+          reasoning_summary?: string | null
+          recommendation?: string
+          recommendation_confidence?: string | null
+          repair_cost_pct_of_replacement?: number | null
+          system_age_years?: number | null
+          system_type?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "repair_replace_analysis_quiz_session_id_fkey"
+            columns: ["quiz_session_id"]
+            isOneToOne: false
+            referencedRelation: "quiz_sessions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Views: {
       [_ in never]: never

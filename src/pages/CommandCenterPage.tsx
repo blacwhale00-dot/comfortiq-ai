@@ -176,9 +176,12 @@ function statusLabel(funnelStatus: string | null): string {
 
 export default function CommandCenterPage() {
   const [rangeDays, setRangeDays] = useState<number>(30);
-  const { data: sessions, isLoading, error } = useSessions(rangeDays);
+  const { data: sessions, isLoading, error, dataUpdatedAt } = useSessions(rangeDays);
 
-  const now = useMemo(() => new Date(), []);
+  // Re-anchored on every refetch (60s), not frozen at mount — a dashboard left
+  // open overnight must not keep counting yesterday as "today" or let recovery
+  // countdowns drift.
+  const now = useMemo(() => new Date(), [dataUpdatedAt]);
   const stats = useMemo(
     () => (sessions ? buildDailyStats(sessions, now) : null),
     [sessions, now],
