@@ -143,4 +143,17 @@ Every competitor either doesn't know the rebates exist or buries the timing in f
 
 ---
 
-*Filed by Hermes per file-first workflow. §7-§8 added 2026-07-23 from Will's solar-industry + field intel. No build action taken. Awaiting Will's go-ahead → Fable 5 scoping → K3 sequencing after speed-to-lead phases.*
+## 9. Architecture Decision (locked 2026-07-23 — Will asked, Hermes answered)
+
+**Q: Build the rebate engine standalone or bake it into Cora?**
+**A: Bake it INTO Cora — one app, one brain, one voice. Build the engine as separate BACKEND SERVICES underneath her.**
+
+- **The engine is built by itself** (own tables, own edge functions, own scraper crons — independently testable) **but SHIPPED inside Cora** as four new tools: `rebate_lookup(zip, equipment)`, `rebate_stack(session_id)`, `rebate_apply(program_id)`, `rebate_status(application_id)`.
+- **No new app surface, no new auth, no new persona.** The homeowner never sees "a rebate tool" — they see Cora knowing where the free money is. Rebate Clearinghouse + sales rep + assistant + tour guide = one Cora with four skills.
+- **Why not standalone:** (1) the rebate question only arrives mid-conversation after score/calculator — a separate app is a handoff leak; (2) Cora already holds all eligibility context (zip, equipment, photos, AHRI, repair history) — standalone re-collects it; (3) the auto-application moat IS her quiz data; (4) one trusted guide is the brand law.
+- Fits the approved plan's existing pattern (edge functions + `_shared/` modules + tool-use brain) — slots as **Phase 10**, parallel research spike allowed (data work, no UI dependency on Phases 1-9).
+- LeadAvatar licensing: "the rebate engine" is the sellable module — licensees' customers still experience it through Cora.
+
+---
+
+*Filed by Hermes per file-first workflow. §7-§9 added 2026-07-23 from Will's solar-industry + field intel. No build action taken. Awaiting Will's go-ahead → Fable 5 scoping → K3 sequencing after speed-to-lead phases.*
