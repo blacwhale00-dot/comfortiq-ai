@@ -4,6 +4,7 @@ import { motion } from "framer-motion";
 import { Search, Flame, Mail, ArrowRight, X } from "lucide-react";
 import guzzlerLogo from "@/assets/guzzler-score-logo.png";
 import { storeEntryIntent, markEntryGateSeen, type EntryIntent } from "@/lib/entry-intent";
+import { trackFunnelEvent } from "@/lib/funnel-events";
 
 // The three intent doors. Doors 1 & 2 go into the assessment; Door 3 goes to the
 // newsletter. Order is the order shown.
@@ -73,6 +74,8 @@ export default function IntentGate({ onDismiss }: { onDismiss: () => void }) {
     (door: Door) => {
       storeEntryIntent(door.intent);
       markEntryGateSeen();
+      // No session exists yet at the entry doors — the event stands alone.
+      trackFunnelEvent(null, "intent_chosen", door.intent);
       navigate(door.to);
     },
     [navigate],

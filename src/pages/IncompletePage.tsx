@@ -15,6 +15,7 @@ import {
 } from "@/lib/upload-progress";
 import { tierForScore } from "@/lib/guzzler-score";
 import { gradeForScore } from "@/lib/guzzler-reveal";
+import { trackFunnelEvent } from "@/lib/funnel-events";
 
 // Book-a-free-audit destination from the Build Order. Same link as the trophy
 // screen — the audit offer survives even when the discount window doesn't.
@@ -70,6 +71,7 @@ export default function IncompletePage() {
       }
 
       setState({ score: data.guzzler_score, progress });
+      trackFunnelEvent(sessionId, "window_expired_viewed");
     })();
     return () => {
       active = false;

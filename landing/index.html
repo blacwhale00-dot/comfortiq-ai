@@ -1,0 +1,799 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>Guzzler Score — Know your score before you get a quote</title>
+<meta name="description" content="Snap a few photos, get your home's energy score in minutes. Free. No salesperson, no obligation. Find out if your HVAC system is sipping or bleeding money.">
+<meta name="theme-color" content="#0a0e17">
+<link rel="icon" type="image/jpeg" href="https://hlzgdlomdwblxalzwurt.supabase.co/storage/v1/object/public/audit-uploads/landing/logo-240.jpg">
+<meta property="og:title" content="Know your score before you get a quote">
+<meta property="og:description" content="Free home energy score in minutes. No salesperson. The number is the product.">
+<meta property="og:image" content="https://hlzgdlomdwblxalzwurt.supabase.co/storage/v1/object/public/audit-uploads/landing/og-banner.jpg">
+<meta property="og:url" content="https://guzzlerscore.com">
+<meta property="og:type" content="website">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&display=swap" rel="stylesheet">
+
+<style>
+/* ============================================================
+   GUZZLER SCORE v2 — mobile-first, navy/gold, the needle is the hero
+   Palette per creative brief: bg #0a0e17 · gold #d4af37 · cream #f5f0e8
+   Band colors: sipping green → steady yellow-green → drinking orange → bleeding red
+   Score law: HIGH = BAD. Never invert.
+   ============================================================ */
+:root {
+  --bg: #0a0e17;
+  --bg-raise: #111827;
+  --card: rgba(255,255,255,0.04);
+  --card-border: rgba(212,175,55,0.18);
+  --gold: #d4af37;
+  --gold-soft: rgba(212,175,55,0.14);
+  --cream: #f5f0e8;
+  --muted: #98a0b3;
+  --green: #22c55e;
+  --yg: #a3c93a;
+  --orange: #f97316;
+  --red: #ef4444;
+  --radius: 16px;
+  --font: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+}
+* { margin: 0; padding: 0; box-sizing: border-box; }
+html { scroll-behavior: smooth; }
+body {
+  background: var(--bg);
+  color: var(--cream);
+  font-family: var(--font);
+  font-size: 16px;
+  line-height: 1.6;
+  -webkit-font-smoothing: antialiased;
+  overflow-x: hidden;
+}
+img { max-width: 100%; display: block; }
+a { color: var(--gold); text-decoration: none; }
+.wrap { max-width: 1100px; margin: 0 auto; padding: 0 20px; }
+
+/* ---------- reveal-on-scroll (cheap, transform+opacity only) ---------- */
+.reveal { opacity: 0; transform: translateY(18px); transition: opacity .6s ease, transform .6s ease; }
+.reveal.in { opacity: 1; transform: none; }
+
+/* ---------- header ---------- */
+header {
+  position: sticky; top: 0; z-index: 50;
+  background: rgba(10,14,23,0.85);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border-bottom: 1px solid rgba(212,175,55,0.12);
+}
+.header-in { display: flex; align-items: center; justify-content: space-between; padding: 10px 20px; max-width: 1100px; margin: 0 auto; }
+.brand { display: flex; align-items: center; gap: 10px; }
+.brand img { height: 34px; width: auto; border-radius: 6px; }
+.brand span { font-weight: 800; font-size: 15px; letter-spacing: .02em; }
+.header-cta {
+  background: var(--gold); color: #0a0e17; font-weight: 800; font-size: 13px;
+  padding: 9px 16px; border-radius: 999px; white-space: nowrap;
+}
+
+/* ---------- hero ---------- */
+.hero { padding: 44px 0 28px; text-align: center; position: relative; }
+.hero::before {
+  content: ""; position: absolute; inset: -40% -20% auto;
+  height: 130%; pointer-events: none;
+  background: radial-gradient(ellipse 60% 45% at 50% 20%, rgba(212,175,55,0.10), transparent 65%);
+}
+.hero h1 {
+  font-size: clamp(30px, 7.5vw, 54px);
+  font-weight: 800; line-height: 1.12; letter-spacing: -0.02em;
+  max-width: 17ch; margin: 0 auto;
+}
+.hero h1 em { font-style: normal; color: var(--gold); }
+.hero p.sub {
+  color: var(--muted); font-size: clamp(15px, 4vw, 18px);
+  max-width: 46ch; margin: 14px auto 0;
+}
+.gauge-hero { width: min(320px, 78vw); margin: 26px auto 6px; }
+.cta {
+  display: inline-block; background: var(--gold); color: #0a0e17;
+  font-weight: 800; font-size: 17px; padding: 16px 34px; border-radius: 999px;
+  box-shadow: 0 8px 30px rgba(212,175,55,0.30);
+  transition: transform .15s ease, box-shadow .15s ease;
+}
+.cta:active { transform: scale(.97); }
+.cta.secondary { background: transparent; color: var(--cream); border: 1px solid rgba(245,240,232,0.25); box-shadow: none; }
+.trust-strip { color: var(--muted); font-size: 13px; margin-top: 14px; }
+.trust-strip b { color: var(--cream); font-weight: 600; }
+
+/* ---------- gauge svg ---------- */
+.gauge-needle { transition: transform 1.1s cubic-bezier(.6,.05,.2,1.2); transform-origin: 100px 96px; }
+@keyframes heroSweep {
+  0%   { transform: rotate(-82deg); }
+  45%  { transform: rotate(74deg); }
+  100% { transform: rotate(0deg); }
+}
+.gauge-hero .gauge-needle { animation: heroSweep 2.4s cubic-bezier(.55,.05,.3,1) .3s both; }
+
+/* ---------- doors ---------- */
+.doors { padding: 44px 0 10px; }
+.kicker { text-align: center; color: var(--gold); font-size: 13px; font-weight: 800; letter-spacing: .16em; text-transform: uppercase; }
+.doors h2, .explainer h2, .proof h2 { text-align: center; font-size: clamp(24px, 6vw, 36px); font-weight: 800; letter-spacing: -0.01em; margin-top: 8px; }
+.door-grid { display: grid; gap: 14px; margin-top: 26px; }
+.door {
+  display: flex; align-items: center; gap: 16px;
+  background: var(--card); border: 1px solid var(--card-border);
+  border-radius: var(--radius); padding: 20px 18px;
+  color: var(--cream); transition: transform .15s ease, border-color .2s ease;
+  min-height: 84px;
+}
+.door:active { transform: scale(.985); }
+.door .ic {
+  flex: 0 0 48px; height: 48px; border-radius: 12px;
+  display: grid; place-items: center; font-size: 24px;
+  background: var(--gold-soft);
+}
+.door .tx b { display: block; font-size: 17px; font-weight: 800; }
+.door .tx span { display: block; color: var(--muted); font-size: 13.5px; line-height: 1.45; margin-top: 2px; }
+.door .arrow { margin-left: auto; color: var(--gold); font-size: 20px; flex: 0 0 auto; }
+.door.primary {
+  background: linear-gradient(135deg, rgba(212,175,55,0.16), rgba(212,175,55,0.05));
+  border-color: rgba(212,175,55,0.5);
+}
+.door.primary .tx b { color: var(--gold); }
+
+/* ---------- gauge explainer ---------- */
+.explainer { padding: 56px 0 8px; }
+.explainer .intro { text-align: center; color: var(--muted); max-width: 52ch; margin: 10px auto 0; }
+.steps { display: grid; gap: 18px; margin-top: 30px; }
+.step {
+  background: var(--card); border: 1px solid var(--card-border);
+  border-radius: var(--radius); padding: 26px 22px; text-align: center;
+}
+.step .g { width: min(220px, 62vw); margin: 0 auto 10px; }
+.step .band-tag {
+  display: inline-block; font-size: 12px; font-weight: 800; letter-spacing: .12em;
+  text-transform: uppercase; padding: 4px 12px; border-radius: 999px; margin-bottom: 10px;
+}
+.step h3 { font-size: 21px; font-weight: 800; }
+.step p { color: var(--muted); font-size: 14.5px; margin-top: 8px; }
+.step .todo { margin-top: 12px; font-size: 13.5px; color: var(--cream); background: rgba(255,255,255,0.05); border-radius: 10px; padding: 10px 14px; display: inline-block; }
+.step .todo b { color: var(--gold); }
+.s-sipping  .band-tag { background: rgba(34,197,94,.15);  color: var(--green); }
+.s-steady   .band-tag { background: rgba(163,201,58,.15); color: var(--yg); }
+.s-drinking .band-tag { background: rgba(249,115,22,.15); color: var(--orange); }
+.s-bleeding .band-tag { background: rgba(239,68,68,.15);  color: var(--red); }
+.explainer .recapture { text-align: center; padding: 30px 0 10px; }
+.explainer .recapture p { color: var(--muted); margin-bottom: 14px; }
+
+/* ---------- image bands ---------- */
+.img-band { padding: 52px 0; }
+.img-band .frame {
+  border-radius: var(--radius); overflow: hidden;
+  border: 1px solid var(--card-border);
+  box-shadow: 0 20px 60px rgba(0,0,0,0.45);
+}
+.img-band .cap { text-align: center; margin-top: 18px; }
+.img-band .cap h3 { font-size: clamp(21px, 5.5vw, 28px); font-weight: 800; }
+.img-band .cap p { color: var(--muted); max-width: 52ch; margin: 8px auto 0; font-size: 15px; }
+.honesty {
+  margin: 18px auto 0; max-width: 420px; text-align: center;
+  font-size: 13.5px; color: var(--gold);
+  border: 1px dashed rgba(212,175,55,0.4); border-radius: 12px; padding: 12px 16px;
+}
+
+/* ---------- proof ---------- */
+.proof { padding: 46px 0; }
+.proof-card {
+  background: var(--card); border: 1px solid var(--card-border);
+  border-radius: var(--radius); padding: 26px 22px; margin-top: 24px;
+}
+.proof-card p.big { font-size: 17px; line-height: 1.65; }
+.proof-card p.big b { color: var(--gold); }
+.proof-marks { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 18px; }
+.mark { font-size: 12.5px; color: var(--muted); border: 1px solid rgba(245,240,232,0.15); border-radius: 999px; padding: 6px 14px; }
+
+/* ---------- quote form ---------- */
+.quote { padding: 40px 0 60px; }
+.form-card {
+  background: var(--bg-raise); border: 1px solid var(--card-border);
+  border-radius: var(--radius); padding: 26px 22px; max-width: 560px; margin: 24px auto 0;
+}
+.form-progress { display: flex; gap: 6px; margin-bottom: 20px; }
+.form-progress i { flex: 1; height: 4px; border-radius: 4px; background: rgba(245,240,232,0.12); }
+.form-progress i.on { background: var(--gold); }
+.fstep h3 { font-size: 20px; font-weight: 800; margin-bottom: 16px; }
+.choice-row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+.choice {
+  border: 1px solid rgba(245,240,232,0.2); border-radius: 12px; padding: 16px;
+  text-align: center; font-weight: 700; cursor: pointer; color: var(--cream);
+  background: transparent; font-size: 15px; font-family: var(--font);
+  transition: border-color .15s, background .15s;
+}
+.choice.sel { border-color: var(--gold); background: var(--gold-soft); color: var(--gold); }
+.fstep label { display: block; font-size: 13.5px; color: var(--muted); margin: 18px 0 8px; }
+.fstep input[type="text"], .fstep input[type="tel"], .fstep input[type="email"] {
+  width: 100%; background: rgba(255,255,255,0.05); border: 1px solid rgba(245,240,232,0.2);
+  border-radius: 12px; padding: 14px 16px; color: var(--cream); font-size: 16px; font-family: var(--font);
+}
+.fstep input:focus { outline: none; border-color: var(--gold); }
+.fstep input[type="range"] { width: 100%; accent-color: var(--gold); }
+.range-val { text-align: center; color: var(--gold); font-weight: 800; font-size: 18px; margin-top: 6px; }
+.fnav { display: flex; gap: 12px; margin-top: 22px; }
+.fnav .cta { flex: 1; text-align: center; font-size: 16px; padding: 14px; border: 0; cursor: pointer; font-family: var(--font); }
+.consent { display: flex; gap: 10px; align-items: flex-start; margin-top: 18px; font-size: 12px; color: var(--muted); line-height: 1.55; }
+.consent input { margin-top: 3px; accent-color: var(--gold); flex: 0 0 auto; width: 18px; height: 18px; }
+.form-done { text-align: center; padding: 20px 0; }
+.form-done .check { font-size: 44px; }
+.form-done h3 { font-size: 22px; font-weight: 800; margin-top: 10px; }
+.form-done p { color: var(--muted); margin-top: 8px; font-size: 15px; }
+.form-err { color: var(--red); font-size: 13px; margin-top: 10px; display: none; }
+
+/* ---------- exit intent ---------- */
+.exit-modal {
+  position: fixed; inset: 0; z-index: 100; display: none;
+  background: rgba(4,6,12,0.78); backdrop-filter: blur(6px);
+  align-items: center; justify-content: center; padding: 24px;
+}
+.exit-modal.show { display: flex; }
+.exit-card {
+  background: var(--bg-raise); border: 1px solid var(--card-border);
+  border-radius: 20px; padding: 30px 24px; max-width: 400px; width: 100%; text-align: center;
+  position: relative;
+}
+.exit-card .x { position: absolute; top: 10px; right: 14px; background: none; border: 0; color: var(--muted); font-size: 22px; cursor: pointer; }
+.exit-card h3 { font-size: 21px; font-weight: 800; }
+.exit-card p { color: var(--muted); font-size: 14px; margin: 10px 0 16px; }
+.exit-card input { width: 100%; background: rgba(255,255,255,0.05); border: 1px solid rgba(245,240,232,0.2); border-radius: 12px; padding: 14px 16px; color: var(--cream); font-size: 16px; margin-bottom: 12px; font-family: var(--font); }
+.exit-card .cta { width: 100%; border: 0; cursor: pointer; font-family: var(--font); }
+
+/* ---------- sticky mobile cta ---------- */
+.sticky-cta {
+  position: fixed; left: 0; right: 0; bottom: 0; z-index: 60;
+  padding: 10px 16px calc(10px + env(safe-area-inset-bottom));
+  background: linear-gradient(to top, rgba(10,14,23,0.96) 70%, transparent);
+  transform: translateY(110%); transition: transform .3s ease;
+}
+.sticky-cta.show { transform: none; }
+.sticky-cta a { display: block; text-align: center; }
+
+/* ---------- footer ---------- */
+footer { border-top: 1px solid rgba(212,175,55,0.12); padding: 34px 0 120px; text-align: center; }
+footer img { height: 44px; margin: 0 auto 12px; border-radius: 8px; }
+footer p { color: var(--muted); font-size: 12.5px; }
+footer nav { margin-top: 10px; display: flex; gap: 18px; justify-content: center; font-size: 13px; }
+
+/* ---------- desktop scale-up ---------- */
+@media (min-width: 820px) {
+  .hero { padding: 80px 0 40px; }
+  .door-grid { grid-template-columns: 1.2fr 1fr 1fr; align-items: stretch; }
+  .door { flex-direction: column; text-align: center; padding: 30px 22px; gap: 12px; }
+  .door .arrow { margin: 6px 0 0; }
+  .steps { grid-template-columns: repeat(4, 1fr); }
+  .img-band .duo { display: grid; grid-template-columns: 1fr 1fr; gap: 34px; align-items: center; }
+  .img-band .duo .cap { text-align: left; margin-top: 0; }
+  .img-band .duo .cap p { margin-left: 0; }
+  .sticky-cta { display: none; }
+  footer { padding-bottom: 40px; }
+}
+</style>
+</head>
+<body>
+
+<header>
+  <div class="header-in">
+    <div class="brand">
+      <img src="https://hlzgdlomdwblxalzwurt.supabase.co/storage/v1/object/public/audit-uploads/landing/logo-240.jpg" alt="Guzzler Score" width="62" height="34">
+      <span>GUZZLER&nbsp;SCORE</span>
+    </div>
+    <a class="header-cta app-link" href="https://app.guzzlerscore.com/assess?ref=guzzlerscore_landing">Get My Score</a>
+  </div>
+</header>
+
+<!-- ============ SECTION 1: HERO ============ -->
+<section class="hero">
+  <div class="wrap">
+    <h1>Know your <em>score</em> before you get a quote.</h1>
+    <p class="sub">Snap a few photos, get your home's energy score in minutes. Free. No salesperson, no obligation.</p>
+    <div class="gauge-hero" id="gauge-hero"></div>
+    <a class="cta app-link" href="https://app.guzzlerscore.com/assess?ref=guzzlerscore_landing">Get My Score — Free</a>
+    <p class="trust-strip">Built by a <b>20-year Atlanta HVAC pro</b>. You never pay. No salesman will call.</p>
+  </div>
+</section>
+
+<!-- ============ SECTION 2: THE THREE DOORS ============ -->
+<section class="doors" id="doors">
+  <div class="wrap">
+    <p class="kicker">Where are you right now?</p>
+    <h2>Pick your door.</h2>
+    <div class="door-grid">
+      <a class="door primary reveal app-link" href="https://app.guzzlerscore.com/assess?ref=guzzlerscore_landing">
+        <div class="ic">🎯</div>
+        <div class="tx"><b>Get My Score Now</b><span>See if your system is bleeding money — free, takes a few minutes</span></div>
+        <div class="arrow">→</div>
+      </a>
+      <a class="door reveal" href="#quote">
+        <div class="ic">🛠️</div>
+        <div class="tx"><b>I Want a Quote</b><span>Ready to replace it? Book a virtual walk-through — evenings, from your couch</span></div>
+        <div class="arrow">→</div>
+      </a>
+      <a class="door reveal app-link" href="https://app.guzzlerscore.com/newsletter?ref=guzzlerscore_landing">
+        <div class="ic">📬</div>
+        <div class="tx"><b>Just Curious</b><span>Get straight talk on HVAC in your inbox — no spam, ever</span></div>
+        <div class="arrow">→</div>
+      </a>
+    </div>
+  </div>
+</section>
+
+<!-- ============ SECTION 3: THE GAUGE EXPLAINER ============ -->
+<section class="explainer">
+  <div class="wrap">
+    <p class="kicker">How to read the dial</p>
+    <h2>Every home lands somewhere on the dial.</h2>
+    <p class="intro">Here's what your needle is telling you. Low is good — high means your system is drinking your money.</p>
+
+    <div class="steps">
+      <div class="step s-sipping reveal" data-band="sipping">
+        <div class="g"></div>
+        <span class="band-tag">0–25 · Sipping</span>
+        <h3>Sipping</h3>
+        <p>Your system is sipping energy. It's running efficiently for its age. No action needed — you're good.</p>
+        <div class="todo"><b>Do:</b> nothing. Bookmark your score, re-check in a year.</div>
+      </div>
+
+      <div class="step s-steady reveal" data-band="steady">
+        <div class="g"></div>
+        <span class="band-tag">26–50 · Steady</span>
+        <h3>Steady</h3>
+        <p>Doing its job, but you're leaving a little money on the table. Worth watching.</p>
+        <div class="todo"><b>Do:</b> simple maintenance. Not a replacement conversation yet.</div>
+      </div>
+
+      <div class="step s-drinking reveal" data-band="drinking">
+        <div class="g"></div>
+        <span class="band-tag">51–75 · Drinking</span>
+        <h3>Drinking</h3>
+        <p>Your system is pulling more energy than it should. This is where repair-vs-replace math starts to matter.</p>
+        <div class="todo"><b>Do:</b> get a real assessment before sinking more money into repairs.</div>
+      </div>
+
+      <div class="step s-bleeding reveal" data-band="bleeding">
+        <div class="g"></div>
+        <span class="band-tag">76–100 · Bleeding</span>
+        <h3>Bleeding</h3>
+        <p>Your system is hemorrhaging energy and money every month it runs. Replacement almost always pays for itself here.</p>
+        <div class="todo"><b>Do:</b> this is where a quote <b>saves</b> you money, not costs you.</div>
+      </div>
+    </div>
+
+    <div class="recapture reveal">
+      <p>Not sure where your needle lands?</p>
+      <a class="cta app-link" href="https://app.guzzlerscore.com/assess?ref=guzzlerscore_landing">Get My Score</a>
+    </div>
+  </div>
+</section>
+
+<!-- ============ EXPLAINER VIDEO (50s, click-to-play, zero load-budget cost) ============ -->
+<section class="img-band" id="how-it-works">
+  <div class="wrap">
+    <p class="kicker">50 seconds</p>
+    <h2 style="text-align:center;font-size:clamp(24px,6vw,36px);font-weight:800;margin-top:8px;">Watch how it works.</h2>
+    <div class="frame reveal" style="margin-top:26px;">
+      <video controls preload="none" playsinline
+        poster="https://hlzgdlomdwblxalzwurt.supabase.co/storage/v1/object/public/audit-uploads/landing/og-banner.jpg"
+        style="width:100%;display:block;aspect-ratio:16/9;background:#000;"
+        title="How the Guzzler Score works — from quiz to verified score to a vetted pro">
+        <source src="https://hlzgdlomdwblxalzwurt.supabase.co/storage/v1/object/public/audit-uploads/landing/explainer.mp4" type="video/mp4">
+      </video>
+    </div>
+    <div class="cap reveal">
+      <p>Quiz → preliminary score → snap your photos → verified score with a real load calc → matched with a vetted pro. Free at every step.</p>
+    </div>
+  </div>
+</section>
+
+<!-- ============ SCORE NIGHT (couch duo) ============ -->
+<section class="img-band">
+  <div class="wrap">
+    <div class="duo">
+      <div class="frame reveal">
+        <img src="https://hlzgdlomdwblxalzwurt.supabase.co/storage/v1/object/public/audit-uploads/landing/couple-couch.jpg" alt="A couple on their couch at night, checking their home's energy score together on one phone" loading="lazy" width="900" height="1205">
+      </div>
+      <div class="cap reveal">
+        <h3>From your couch. In minutes.</h3>
+        <p>No appointment. No stranger walking your house with a clipboard. You answer a few questions, snap a few photos, and the number shows up right there on your phone — age, waste, and whether it's <em>broken</em>… or just <em>guzzling</em>.</p>
+        <div class="frame reveal" style="max-width:280px;margin:22px auto 0;">
+          <img src="https://hlzgdlomdwblxalzwurt.supabase.co/storage/v1/object/public/audit-uploads/landing/score-phone.jpg" alt="Hands holding a phone showing a Guzzler Score of 78 in the red zone" loading="lazy" width="900" height="1205">
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============ SIP OR GUZZLE (meme strip) ============ -->
+<section class="img-band">
+  <div class="wrap">
+    <div class="frame reveal">
+      <img src="https://hlzgdlomdwblxalzwurt.supabase.co/storage/v1/object/public/audit-uploads/landing/sip-or-guzzle.jpg" alt="The same AC unit shown two ways: calmly sipping energy with a green glow, and greedily guzzling energy with dollar bills flying away" loading="lazy" width="1920" height="1080">
+    </div>
+    <div class="cap reveal">
+      <h3>Sip… or guzzle?</h3>
+      <p>Same unit. Two very different power bills. Your score tells you which one lives at your house — before you spend a dollar.</p>
+    </div>
+  </div>
+</section>
+
+<!-- ============ THE KITCHEN TABLE THAT NEVER HAPPENED ============ -->
+<section class="img-band">
+  <div class="wrap">
+    <div class="duo">
+      <div class="frame reveal">
+        <img src="https://hlzgdlomdwblxalzwurt.supabase.co/storage/v1/object/public/audit-uploads/landing/kitchen-table.jpg" alt="An empty kitchen table in golden evening light — the sales meeting that never happened" loading="lazy" width="1920" height="1080">
+      </div>
+      <div class="cap reveal">
+        <h3>The kitchen table that never happened.</h3>
+        <p>No truck roll. No clipboard. No "this'll just take 90 minutes." You get your number from the couch — and nobody follows up unless <em>you</em> ask them to.</p>
+        <div class="honesty">You never pay. Contractors pay for verified reports. That's the whole business — no surprises.</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============ THE EVIDENCE BRIEF (sourced) ============ -->
+<section class="proof" id="evidence">
+  <div class="wrap">
+    <p class="kicker">The evidence</p>
+    <h2>Before brand. Before efficiency.<br>Before even price.</h2>
+    <p style="text-align:center;color:var(--muted);max-width:54ch;margin:12px auto 0;">
+      The single most important factor in your next HVAC system is choosing a reputable,
+      trustworthy contractor. That's not a slogan — it's what the research says.
+    </p>
+
+    <div class="proof-card reveal">
+      <p class="big"><b>Up to 30% of a system's efficiency is lost to poor installation alone.</b>
+      A federal study found improper installation can drive heating and cooling energy use up
+      by roughly a third — the best equipment in the world can't outrun a bad install.</p>
+      <div class="proof-marks"><span class="mark">Source: U.S. National Institute of Standards &amp; Technology (NIST)</span></div>
+    </div>
+
+    <div class="proof-card reveal" style="margin-top:14px;">
+      <p class="big"><b>More than half of new HVAC systems are not installed correctly</b> —
+      wrong sizing, bad refrigerant charge, leaky ducts. The EPA created its Quality
+      Installation guidelines because this is the industry's biggest hidden problem.</p>
+      <div class="proof-marks"><span class="mark">Source: EPA ENERGY STAR — HVAC Quality Installation</span></div>
+    </div>
+
+    <div class="proof-card reveal" style="margin-top:14px;">
+      <p class="big"><b>The industry is changing under your feet.</b> Private-equity firms have
+      rolled up hundreds of local HVAC companies since 2022. Veteran technicians describe
+      quota-driven "replace more boxes" cultures after acquisition — one engineer at a
+      rolled-up firm estimated <b>warranty calls doubled</b>. The company name on the truck
+      may not mean what it meant five years ago.</p>
+      <div class="proof-marks">
+        <span class="mark">Source: The American Prospect (2023), "Private Equity Intensifies Rollups of HVAC Installers"</span>
+        <span class="mark">Source: The Wall Street Journal (2024) on the PE rush into home services</span>
+      </div>
+    </div>
+
+    <div class="proof-card reveal" style="margin-top:14px;">
+      <p class="big"><b>That's why the checklist matters more than ever:</b> NATE-certified
+      technicians, and a real ACCA Manual J load calculation — the residential building code's
+      own standard for sizing — instead of a guess off the old unit's sticker. Oversized systems
+      short-cycle and leave your air sticky; undersized ones never catch up on a July afternoon.
+      Your verified Guzzler Score includes that load calc, so you can check any bid against it.</p>
+      <div class="proof-marks">
+        <span class="mark">Source: ACCA Manual J — Residential Load Calculation</span>
+        <span class="mark">Source: 2021 International Residential Code (equipment sizing per Manual J)</span>
+        <span class="mark">Source: NATE — North American Technician Excellence</span>
+      </div>
+    </div>
+
+    <p style="text-align:center;color:var(--cream);max-width:52ch;margin:26px auto 0;font-size:16.5px;">
+      Your GuzzlerScore consultant has spent <b style="color:var(--gold)">20 years in Atlanta
+      attics, basements, and crawlspaces</b> — and only matches you with installers who still do
+      it right: real load calcs, certified techs, workmanship he'd put his own name on.
+    </p>
+  </div>
+</section>
+
+<!-- ============ SECTION 4: PROOF ============ -->
+<section class="proof">
+  <div class="wrap">
+    <p class="kicker">Why trust the number</p>
+    <h2>Built by someone who's seen the games.</h2>
+    <div class="proof-card reveal">
+      <p class="big">"After <b>20 years in Atlanta homes</b>, I got tired of watching families get sold oversized systems that quietly bleed money every month. Your score is the truth about your system — <b>before</b> anyone quotes you a price. That's the whole point."</p>
+      <div class="proof-marks">
+        <span class="mark">20-year Atlanta HVAC pro</span>
+        <span class="mark">Licensed &amp; insured</span>
+        <span class="mark">Free — you never pay</span>
+        <span class="mark">No spam, no salesman</span>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============ SECTION 5: PROGRESSIVE QUOTE FORM (Door 2) ============ -->
+<section class="quote" id="quote">
+  <div class="wrap">
+    <p class="kicker">Door 2 · Ready to replace it</p>
+    <h2 style="text-align:center;font-size:clamp(24px,6vw,36px);font-weight:800;margin-top:8px;">Book a virtual walk-through.</h2>
+    <div class="form-card" id="quote-form">
+      <div class="form-progress"><i class="on"></i><i></i><i></i></div>
+
+      <!-- Screen 1: intent + ZIP -->
+      <div class="fstep" data-step="1">
+        <h3>What's going on with your system?</h3>
+        <div class="choice-row">
+          <button type="button" class="choice" data-field="intent" data-value="repair">Needs a repair</button>
+          <button type="button" class="choice" data-field="intent" data-value="replace">Time to replace</button>
+        </div>
+        <label for="zip">Your ZIP code</label>
+        <input type="text" id="zip" inputmode="numeric" maxlength="5" placeholder="30303" autocomplete="postal-code">
+        <div class="fnav"><button class="cta" type="button" data-next="2">Next →</button></div>
+      </div>
+
+      <!-- Screen 2: sliders -->
+      <div class="fstep" data-step="2" hidden>
+        <h3>Ballpark it — no wrong answers.</h3>
+        <label>About how old is your system?</label>
+        <input type="range" id="age-slider" min="0" max="25" value="10">
+        <div class="range-val" id="age-val">~10 years</div>
+        <label>About how big is your home?</label>
+        <input type="range" id="size-slider" min="800" max="4500" step="100" value="1800">
+        <div class="range-val" id="size-val">~1,800 sq ft</div>
+        <div class="fnav"><button class="cta" type="button" data-next="3">Next →</button></div>
+      </div>
+
+      <!-- Screen 3: contact + evening window + TCPA -->
+      <div class="fstep" data-step="3" hidden>
+        <h3>When should we call — your evening, your couch.</h3>
+        <label for="q-name">First name</label>
+        <input type="text" id="q-name" placeholder="Alex" autocomplete="given-name">
+        <label for="q-phone">Mobile number</label>
+        <input type="tel" id="q-phone" placeholder="(404) 555-0123" autocomplete="tel">
+        <label>Preferred evening callback window</label>
+        <div class="choice-row">
+          <button type="button" class="choice" data-field="window" data-value="6-7pm">6–7 pm</button>
+          <button type="button" class="choice" data-field="window" data-value="7-8pm">7–8 pm</button>
+          <button type="button" class="choice" data-field="window" data-value="8-9pm">8–9 pm</button>
+          <button type="button" class="choice" data-field="window" data-value="weekend">Weekend</button>
+        </div>
+        <div class="consent">
+          <input type="checkbox" id="tcpa">
+          <label for="tcpa" style="margin:0;font-size:12px;color:var(--muted);">
+            By checking this box, I expressly consent to receive calls and text messages from <b>Guzzler Score</b> about my quote request at the number I provided, including via automated technology. This consent is for Guzzler Score only, is not a condition of any purchase, and I can reply STOP to opt out at any time. Msg &amp; data rates may apply.
+          </label>
+        </div>
+        <div class="fnav"><button class="cta" type="button" id="q-submit">Book my walk-through</button></div>
+        <p class="form-err" id="q-err"></p>
+      </div>
+
+      <!-- Done -->
+      <div class="form-done" data-step="done" hidden>
+        <div class="check">✅</div>
+        <h3>You're on the list.</h3>
+        <p>Will personally reviews your info and reaches out in your window to book your virtual walk-through. No trucks. No pressure.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<footer>
+  <div class="wrap">
+    <img src="https://hlzgdlomdwblxalzwurt.supabase.co/storage/v1/object/public/audit-uploads/landing/logo-240.jpg" alt="Guzzler Score shield">
+    <p>© 2026 Guzzler Score — Know your number before they name a price.</p>
+    <nav>
+      <a class="app-link" href="https://app.guzzlerscore.com/privacy?ref=guzzlerscore_landing">Privacy</a>
+      <a class="app-link" href="https://app.guzzlerscore.com/newsletter?ref=guzzlerscore_landing">Newsletter</a>
+    </nav>
+  </div>
+</footer>
+
+<!-- ============ SECTION 6: EXIT-INTENT ============ -->
+<div class="exit-modal" id="exit-modal" role="dialog" aria-modal="true" aria-label="Before you go">
+  <div class="exit-card">
+    <button class="x" id="exit-close" aria-label="Close">×</button>
+    <h3>One free thing before you go.</h3>
+    <p>Get the straight-talk HVAC guide — how to never get oversold on a system again. No spam, unsubscribe anytime.</p>
+    <input type="email" id="exit-email" placeholder="you@email.com" autocomplete="email">
+    <button class="cta" id="exit-submit">Send me the guide</button>
+    <p class="form-err" id="exit-err"></p>
+  </div>
+</div>
+
+<!-- sticky mobile CTA -->
+<div class="sticky-cta" id="sticky-cta">
+  <a class="cta app-link" href="https://app.guzzlerscore.com/assess?ref=guzzlerscore_landing">Get My Score — Free</a>
+</div>
+
+<script>
+/* ============================================================
+   THE GAUGE — one reusable component, band prop drives the needle.
+   Angles: semicircle -90° (far left / green) to +90° (far right / red).
+   Score law: high = bad. Pegged-red lives ONLY in the Bleeding step.
+   ============================================================ */
+var BAND_ANGLE = { sipping: -66, steady: -24, drinking: 26, bleeding: 80, neutral: 0 };
+
+function gaugeSVG(band) {
+  // Arc bands drawn as four stroked segments of a semicircle r=78, center (100,96)
+  function seg(a0, a1, color) {
+    var r = 78, cx = 100, cy = 96;
+    var x0 = cx + r * Math.cos(Math.PI * (a0 / 180)), y0 = cy + r * Math.sin(Math.PI * (a0 / 180));
+    var x1 = cx + r * Math.cos(Math.PI * (a1 / 180)), y1 = cy + r * Math.sin(Math.PI * (a1 / 180));
+    return '<path d="M' + x0.toFixed(1) + ' ' + y0.toFixed(1) + ' A78 78 0 0 1 ' + x1.toFixed(1) + ' ' + y1.toFixed(1) + '" stroke="' + color + '" stroke-width="13" fill="none" stroke-linecap="round"/>';
+  }
+  var angle = BAND_ANGLE[band] != null ? BAND_ANGLE[band] : 0;
+  return '<svg viewBox="0 0 200 116" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Efficiency gauge, needle in the ' + band + ' zone">' +
+    seg(-176, -134, '#22c55e') +
+    seg(-130, -94,  '#a3c93a') +
+    seg(-90,  -50,  '#f97316') +
+    seg(-46,  -4,   '#ef4444') +
+    '<circle cx="100" cy="96" r="7" fill="#d4af37"/>' +
+    '<g class="gauge-needle" style="transform:rotate(' + (band === 'neutral' ? 0 : 0) + 'deg)" data-angle="' + angle + '">' +
+    '<line x1="100" y1="96" x2="100" y2="30" stroke="#d4af37" stroke-width="4" stroke-linecap="round"/>' +
+    '<circle cx="100" cy="96" r="3.5" fill="#0a0e17"/>' +
+    '</g></svg>';
+}
+
+// Hero gauge: sweeps once via CSS animation, settles neutral ("your number is unknown")
+document.getElementById('gauge-hero').innerHTML = gaugeSVG('neutral');
+
+// Explainer gauges: render neutral, animate to their band when scrolled into view
+document.querySelectorAll('.step[data-band]').forEach(function (step) {
+  step.querySelector('.g').innerHTML = gaugeSVG(step.getAttribute('data-band'));
+});
+
+/* ---------- scroll animations: reveal + needle-to-band ---------- */
+var io = new IntersectionObserver(function (entries) {
+  entries.forEach(function (e) {
+    if (!e.isIntersecting) return;
+    e.target.classList.add('in');
+    var needle = e.target.querySelector('.gauge-needle');
+    if (needle) {
+      requestAnimationFrame(function () {
+        needle.style.transform = 'rotate(' + needle.getAttribute('data-angle') + 'deg)';
+      });
+    }
+    io.unobserve(e.target);
+  });
+}, { threshold: 0.35 });
+document.querySelectorAll('.reveal, .step').forEach(function (el) { io.observe(el); });
+
+/* ---------- sticky mobile CTA: show after hero scrolls past ---------- */
+var hero = document.querySelector('.hero');
+var sticky = document.getElementById('sticky-cta');
+new IntersectionObserver(function (entries) {
+  sticky.classList.toggle('show', !entries[0].isIntersecting);
+}, { threshold: 0.1 }).observe(hero);
+
+/* ============================================================
+   Attribution pass-through: forward UTM / partner tags from the
+   landing URL onto every app.guzzlerscore.com link, so the app's
+   first-touch classifier sees the ORIGINAL source. Never clobber
+   params baked into the link (ref=guzzlerscore_landing).
+   ============================================================ */
+var PASS = ['utm_source', 'utm_medium', 'utm_campaign', 'utm_term', 'utm_content', 'src', 'ref', 'partner', 'gclid', 'fbclid'];
+var here = new URLSearchParams(window.location.search);
+document.querySelectorAll('a.app-link').forEach(function (a) {
+  try {
+    var url = new URL(a.href);
+    PASS.forEach(function (key) {
+      var v = here.get(key);
+      if (v && !url.searchParams.has(key)) url.searchParams.set(key, v);
+    });
+    a.href = url.toString();
+  } catch (e) { /* leave malformed hrefs alone */ }
+});
+
+/* ============================================================
+   Supabase REST (anon key — public by design, same as the app bundle).
+   Quote form and exit-intent write straight into the funnel tables.
+   ============================================================ */
+var SB_URL = 'https://hlzgdlomdwblxalzwurt.supabase.co';
+var SB_KEY = 'sb_publishable_dzfuqYtH0ew8Hui96TejnA_1ABNL-Wp';
+function sbInsert(table, row) {
+  return fetch(SB_URL + '/rest/v1/' + table, {
+    method: 'POST',
+    headers: { apikey: SB_KEY, 'Content-Type': 'application/json', Prefer: 'return=representation' },
+    body: JSON.stringify(row)
+  }).then(function (r) { if (!r.ok) throw new Error('save failed (' + r.status + ')'); return r.json(); });
+}
+function sourceParams() {
+  var p = {};
+  var utmSource = here.get('utm_source') || here.get('src') || here.get('partner');
+  if (utmSource && utmSource !== 'guzzlerscore_landing') p.utm_source = utmSource.toLowerCase();
+  if (here.get('utm_medium')) p.utm_medium = here.get('utm_medium').toLowerCase();
+  if (here.get('utm_campaign')) p.utm_campaign = here.get('utm_campaign').toLowerCase();
+  return p;
+}
+
+/* ---------- progressive quote form ---------- */
+var formState = { intent: null, window: null };
+document.querySelectorAll('.choice').forEach(function (btn) {
+  btn.addEventListener('click', function () {
+    var field = btn.getAttribute('data-field');
+    formState[field] = btn.getAttribute('data-value');
+    btn.parentElement.querySelectorAll('.choice').forEach(function (b) { b.classList.remove('sel'); });
+    btn.classList.add('sel');
+  });
+});
+var ageSlider = document.getElementById('age-slider'), sizeSlider = document.getElementById('size-slider');
+ageSlider.addEventListener('input', function () {
+  document.getElementById('age-val').textContent = ageSlider.value >= 25 ? '25+ years' : '~' + ageSlider.value + ' years';
+});
+sizeSlider.addEventListener('input', function () {
+  document.getElementById('size-val').textContent = '~' + Number(sizeSlider.value).toLocaleString() + ' sq ft';
+});
+function showStep(n) {
+  document.querySelectorAll('#quote-form [data-step]').forEach(function (s) {
+    s.hidden = s.getAttribute('data-step') !== String(n);
+  });
+  document.querySelectorAll('.form-progress i').forEach(function (bar, i) {
+    bar.classList.toggle('on', i < (n === 'done' ? 3 : n));
+  });
+}
+document.querySelectorAll('[data-next]').forEach(function (btn) {
+  btn.addEventListener('click', function () { showStep(Number(btn.getAttribute('data-next'))); });
+});
+document.getElementById('q-submit').addEventListener('click', function () {
+  var err = document.getElementById('q-err');
+  var name = document.getElementById('q-name').value.trim();
+  var phone = document.getElementById('q-phone').value.replace(/[^\d+]/g, '');
+  if (!name || phone.length < 10) { err.textContent = 'Add your first name and a valid mobile number.'; err.style.display = 'block'; return; }
+  if (!document.getElementById('tcpa').checked) { err.textContent = 'Please check the consent box so we can legally call you back.'; err.style.display = 'block'; return; }
+  err.style.display = 'none';
+  var row = Object.assign({
+    first_name: name,
+    phone: phone.length === 10 ? '+1' + phone : phone,
+    zip_code: document.getElementById('zip').value.trim() || null,
+    system_age: Number(ageSlider.value),
+    square_footage: String(sizeSlider.value),
+    project_tier: formState.intent,
+    funnel_status: 'quote_request',
+    lead_source: (here.get('src') || here.get('partner')) && (here.get('src') || here.get('partner')) !== 'guzzlerscore_landing' ? 'partner' : (here.get('utm_medium') ? 'paid' : 'direct')
+  }, sourceParams());
+  sbInsert('quiz_sessions', row).then(function (rows) {
+    // Log the touchpoint: quote path, callback window, explicit TCPA consent.
+    return sbInsert('funnel_events', {
+      quiz_session_id: rows[0] && rows[0].id,
+      event_type: 'contact_submitted',
+      step: 'quote_form',
+      metadata: { path: 'quote', callback_window: formState.window, intent: formState.intent, tcpa_consent: true, consent_wording: 'one_to_one_v1' }
+    });
+  }).then(function () { showStep('done'); })
+    .catch(function () { err.textContent = "Couldn't save — check your connection and try again."; err.style.display = 'block'; });
+});
+
+/* ---------- exit intent ---------- */
+var exitShown = false, modal = document.getElementById('exit-modal');
+function showExit() {
+  if (exitShown || sessionStorage.getItem('gz_exit_seen')) return;
+  exitShown = true;
+  try { sessionStorage.setItem('gz_exit_seen', '1'); } catch (e) {}
+  modal.classList.add('show');
+}
+document.addEventListener('mouseout', function (e) {
+  if (!e.relatedTarget && e.clientY <= 0) showExit();
+});
+var lastY = 0, upDist = 0;
+window.addEventListener('scroll', function () {
+  var y = window.scrollY;
+  if (y < lastY) { upDist += lastY - y; if (upDist > 500 && y < 400 && lastY > 600) showExit(); }
+  else upDist = 0;
+  lastY = y;
+}, { passive: true });
+document.getElementById('exit-close').addEventListener('click', function () { modal.classList.remove('show'); });
+modal.addEventListener('click', function (e) { if (e.target === modal) modal.classList.remove('show'); });
+document.getElementById('exit-submit').addEventListener('click', function () {
+  var email = document.getElementById('exit-email').value.trim();
+  var err = document.getElementById('exit-err');
+  if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)) { err.textContent = 'Enter a valid email.'; err.style.display = 'block'; return; }
+  sbInsert('quiz_sessions', Object.assign({ email: email, funnel_status: 'newsletter' }, sourceParams()))
+    .then(function () {
+      modal.querySelector('.exit-card').innerHTML = '<div class="form-done"><div class="check">📬</div><h3>Guide on the way.</h3><p>Check your inbox — and welcome to the straight-talk side of HVAC.</p></div>';
+    })
+    .catch(function () { err.textContent = "Couldn't save — try again."; err.style.display = 'block'; });
+});
+</script>
+</body>
+</html>

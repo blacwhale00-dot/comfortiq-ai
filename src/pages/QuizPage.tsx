@@ -18,7 +18,9 @@ import GuzzlerResults, { GuzzlerRevealData } from "@/components/quiz/GuzzlerResu
 import { calculateGuzzlerScore } from "@/lib/guzzler-score";
 import { deriveRevealData } from "@/lib/guzzler-reveal";
 import { getStoredEntryIntent } from "@/lib/entry-intent";
+import { persistLeadSource } from "@/lib/lead-source";
 import { buildCoraReminders } from "@/lib/cora-reminders";
+import { trackFunnelEvent } from "@/lib/funnel-events";
 
 type Phase = "intro" | "question" | "gate" | "analyzing" | "results";
 
@@ -100,10 +102,11 @@ function stampQuizCompletedAt(quizSessionId: string, completedAt: string) {
 // (cora-reminders.ts) freezes the copy + send_at into each row so the worker
 // only has to send them — see plan.md. Anchored to the SAME completion instant
 // as the upload timer above so the two never drift. Fire-and-forget and
-// idempotent: the unique (quiz_session_id, milestone) constraint makes a
-// re-submit a no-op (ignoreDuplicates, so it never resets a row the worker has
-// already advanced), and any error — e.g. the table not migrated yet — is
-// logged without breaking the quiz.
+// idempotent: a plain INSERT, treating duplicate-key (23505) as success on a
+// re-submit. It must NOT be an upsert — ON CONFLICT DO NOTHING is rejected by
+// RLS (42501) because cora_reminders deliberately has no SELECT policy for
+// anon (rows hold phone numbers), and the conflict-arbitration path needs row
+// visibility. Any other error is logged without breaking the quiz.
 function persistCoraReminders(
   quizSessionId: string,
   completedAt: string,
@@ -123,9 +126,12 @@ function persistCoraReminders(
 
   void supabase
     .from("cora_reminders")
-    .upsert(rows, { onConflict: "quiz_session_id,milestone", ignoreDuplicates: true })
+    .insert(rows)
     .then(({ error }) => {
-      if (error) console.warn("cora_reminders not persisted:", error.message);
+      // 23505 = duplicate key: reminders already persisted on a prior submit.
+      if (error && error.code !== "23505") {
+        console.warn("cora_reminders not persisted:", error.message);
+      }
     });
 }
 
@@ -193,6 +199,7 @@ export default function QuizPage() {
         if (inserted) {
           setSessionId(inserted.id);
           persistEntryIntent(inserted.id);
+          void persistLeadSource(inserted.id);
           return inserted.id;
         }
       } catch (err) {
@@ -231,6 +238,7 @@ export default function QuizPage() {
   const startQuiz = () => {
     setPhase("question");
     setCoraComment("Let's start simple. I'll react as you answer.");
+    trackFunnelEvent(sessionId, "quiz_started");
   };
 
   // User picks an option. Store it immediately, then wait 1.5–2s before
@@ -243,7 +251,10 @@ export default function QuizPage() {
     // Ensure the session row exists, then persist this single answer immediately.
     void (async () => {
       const id = await saveSession(false, next);
-      if (id) await saveAnswer(id, q.id, val);
+      if (id) {
+        await saveAnswer(id, q.id, val);
+        trackFunnelEvent(id, "question_answered", String(currentQ + 1));
+      }
     })();
 
     // Floating-bubble nudge reacts instantly; the in-flow mirror waits.
@@ -270,6 +281,7 @@ export default function QuizPage() {
     // After Q12: closing script, then the address gate.
     setCoraComment(CLOSING_SCRIPT);
     setPhase("gate");
+    trackFunnelEvent(sessionId, "gate_viewed");
   };
 
   useEffect(() => {
@@ -347,6 +359,7 @@ export default function QuizPage() {
           activeId = inserted.id;
           setSessionId(inserted.id);
           persistEntryIntent(inserted.id);
+          void persistLeadSource(inserted.id);
         }
       }
 
@@ -357,6 +370,7 @@ export default function QuizPage() {
         const completedAt = new Date().toISOString();
         stampQuizCompletedAt(activeId, completedAt);
         persistCoraReminders(activeId, completedAt, firstName, data.phone);
+        trackFunnelEvent(activeId, "contact_submitted");
         await linkPropertyIntelligence(activeId, data);
       }
     } catch (err) {
@@ -427,6 +441,7 @@ export default function QuizPage() {
     // Engine owns score/tier; the reveal layer adds grade, categories, waste,
     // drivers and the unlock-progress values from the raw 12 answers.
     const result = deriveRevealData(base, answers);
+    trackFunnelEvent(sessionId, "score_revealed", undefined, { score: base.score });
 
     setGuzzlerData(result);
     setCoraComment(

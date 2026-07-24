@@ -1,5 +1,5 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { BrowserRouter, Route, Routes } from "react-router-dom";
+import { BrowserRouter, Navigate, Route, Routes } from "react-router-dom";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -17,6 +17,7 @@ import PrivacyPage from "./pages/PrivacyPage.tsx";
 import CashFlowCloserPage from "./pages/CashFlowCloserPage.tsx";
 import IntelligencePage from "./pages/IntelligencePage.tsx";
 import NewsletterPage from "./pages/NewsletterPage.tsx";
+import CommandCenterPage from "./pages/CommandCenterPage.tsx";
 import NotFound from "./pages/NotFound.tsx";
 
 const queryClient = new QueryClient();
@@ -29,6 +30,9 @@ const App = () => (
       <BrowserRouter>
         <Routes>
           <Route path="/" element={<Index />} />
+          {/* The guzzlerscore.com landing CTA points here (landing/index.html);
+              attribution is captured on mount before this redirect renders. */}
+          <Route path="/assess" element={<Navigate to="/quiz" replace />} />
           <Route path="/quiz" element={<QuizPage />} />
           <Route path="/unlock" element={<UnlockPage />} />
           <Route path="/trophy" element={<TrophyPage />} />
@@ -42,6 +46,7 @@ const App = () => (
           <Route path="/cash-flow" element={<CashFlowCloserPage />} />
           <Route path="/intelligence" element={<IntelligencePage />} />
           <Route path="/newsletter" element={<NewsletterPage />} />
+          <Route path="/command-center" element={<CommandCenterPage />} />
           <Route path="*" element={<NotFound />} />
         </Routes>
       </BrowserRouter>

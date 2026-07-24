@@ -11,6 +11,8 @@ import { motion, AnimatePresence } from "framer-motion";
 import confetti from "canvas-confetti";
 import { useAuditUpload } from "@/hooks/useAuditUpload";
 import { UPLOAD_SLOTS } from "@/lib/upload-progress";
+import RepairHistoryChat, { type RepairAnalysisDone } from "@/components/quiz/RepairHistoryChat";
+import RepairReplaceResults from "@/components/quiz/RepairReplaceResults";
 
 // Shape returned by the analyze-audit edge function.
 interface RoiReport {
@@ -31,6 +33,22 @@ export default function VisualAuditPage() {
   const { slots, progress, handleFile, startedAt } = useAuditUpload(sessionId);
   const [analyzing, setAnalyzing] = useState(false);
   const [roiReport, setRoiReport] = useState<RoiReport | null>(null);
+
+  // Repair-vs-replace exchange (July 23 handoff): fires after uploads are in,
+  // before the report. Session facts feed the calculator.
+  const [sessionFacts, setSessionFacts] = useState<{ age: number | null; score: number | null } | null>(null);
+  const [repairResult, setRepairResult] = useState<RepairAnalysisDone | null>(null);
+  useEffect(() => {
+    if (!sessionId) return;
+    void supabase
+      .from("quiz_sessions")
+      .select("system_age, guzzler_score")
+      .eq("id", sessionId)
+      .maybeSingle()
+      .then(({ data }) => {
+        if (data) setSessionFacts({ age: data.system_age, score: data.guzzler_score });
+      });
+  }, [sessionId]);
 
   // No session means they skipped the quiz — send them back to start it.
   useEffect(() => {
@@ -162,6 +180,17 @@ export default function VisualAuditPage() {
                 />
               ))}
             </div>
+
+            {/* Repair check with Cora — after uploads, before the report */}
+            {progress.isComplete && !repairResult && sessionId && (
+              <RepairHistoryChat
+                sessionId={sessionId}
+                systemAgeYears={sessionFacts?.age ?? null}
+                guzzlerScore={sessionFacts?.score ?? null}
+                onComplete={setRepairResult}
+              />
+            )}
+            {repairResult && <RepairReplaceResults result={repairResult} />}
 
             {/* Analysis / CTA Section */}
             <AnimatePresence mode="wait">
