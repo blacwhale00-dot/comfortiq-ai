@@ -1,4 +1,5 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import { MotionConfig } from "framer-motion";
 import { BrowserRouter, Route, Routes } from "react-router-dom";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { Toaster } from "@/components/ui/toaster";
@@ -21,31 +22,37 @@ import NotFound from "./pages/NotFound.tsx";
 
 const queryClient = new QueryClient();
 
+// `reducedMotion="user"` makes every framer-motion animation in the funnel
+// (score reveal, slot stagger, Cora bubble) collapse to an instant state change
+// when the visitor has "reduce motion" enabled on their phone or OS. CSS-driven
+// animations are handled by the matching media query in index.css.
 const App = () => (
   <QueryClientProvider client={queryClient}>
-    <TooltipProvider>
-      <Toaster />
-      <Sonner />
-      <BrowserRouter>
-        <Routes>
-          <Route path="/" element={<Index />} />
-          <Route path="/quiz" element={<QuizPage />} />
-          <Route path="/unlock" element={<UnlockPage />} />
-          <Route path="/trophy" element={<TrophyPage />} />
-          <Route path="/incomplete" element={<IncompletePage />} />
-          <Route path="/missions" element={<MissionsPage />} />
-          <Route path="/audit" element={<VisualAuditPage />} />
-          <Route path="/estimate" element={<EstimatePage />} />
-          <Route path="/education" element={<EducationPage />} />
-          <Route path="/blog" element={<BlogPage />} />
-          <Route path="/privacy" element={<PrivacyPage />} />
-          <Route path="/cash-flow" element={<CashFlowCloserPage />} />
-          <Route path="/intelligence" element={<IntelligencePage />} />
-          <Route path="/newsletter" element={<NewsletterPage />} />
-          <Route path="*" element={<NotFound />} />
-        </Routes>
-      </BrowserRouter>
-    </TooltipProvider>
+    <MotionConfig reducedMotion="user">
+      <TooltipProvider>
+        <Toaster />
+        <Sonner />
+        <BrowserRouter>
+          <Routes>
+            <Route path="/" element={<Index />} />
+            <Route path="/quiz" element={<QuizPage />} />
+            <Route path="/unlock" element={<UnlockPage />} />
+            <Route path="/trophy" element={<TrophyPage />} />
+            <Route path="/incomplete" element={<IncompletePage />} />
+            <Route path="/missions" element={<MissionsPage />} />
+            <Route path="/audit" element={<VisualAuditPage />} />
+            <Route path="/estimate" element={<EstimatePage />} />
+            <Route path="/education" element={<EducationPage />} />
+            <Route path="/blog" element={<BlogPage />} />
+            <Route path="/privacy" element={<PrivacyPage />} />
+            <Route path="/cash-flow" element={<CashFlowCloserPage />} />
+            <Route path="/intelligence" element={<IntelligencePage />} />
+            <Route path="/newsletter" element={<NewsletterPage />} />
+            <Route path="*" element={<NotFound />} />
+          </Routes>
+        </BrowserRouter>
+      </TooltipProvider>
+    </MotionConfig>
   </QueryClientProvider>
 );
 

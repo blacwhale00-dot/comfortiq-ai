@@ -1,0 +1,12 @@
+{
+  "extends": "../tsconfig.app.json",
+  "compilerOptions": {
+    // Playwright specs run in Node, not the browser bundle, and must not inherit
+    // the app config's vitest globals — `expect`/`test` come from
+    // @playwright/test here.
+    "types": ["node"],
+    "noEmit": true,
+    "allowImportingTsExtensions": true
+  },
+  "include": ["."]
+}

@@ -111,18 +111,18 @@ export default function TrophyPage() {
 
   return (
     <Layout>
-      <div className="container py-10 max-w-xl space-y-6 text-center">
+      <div className="container py-8 sm:py-10 max-w-xl space-y-6 text-center">
         <motion.div
           initial={{ opacity: 0, scale: 0.7, rotate: -8 }}
           animate={{ opacity: 1, scale: 1, rotate: 0 }}
           transition={{ type: "spring", stiffness: 180, damping: 12 }}
-          className="inline-flex items-center justify-center w-24 h-24 rounded-full gradient-amber shadow-elevated"
+          className="inline-flex items-center justify-center w-20 h-20 sm:w-24 sm:h-24 rounded-full gradient-amber shadow-elevated"
         >
-          <Trophy className="w-12 h-12 text-primary-foreground" />
+          <Trophy className="w-10 h-10 sm:w-12 sm:h-12 text-primary-foreground" />
         </motion.div>
 
         <div>
-          <h1 className="font-display font-extrabold text-3xl text-foreground">You did it! 🏆</h1>
+          <h1 className="font-display font-extrabold text-2xl sm:text-3xl text-foreground">You did it! 🏆</h1>
           <p className="mt-2 text-sm text-muted-foreground">
             GOLD status unlocked — you've revealed your TRUE Guzzler Score.
           </p>
@@ -207,8 +207,9 @@ export default function TrophyPage() {
               <p className="font-display font-bold text-lg text-foreground">Report on its way!</p>
               <p className="text-sm text-muted-foreground">
                 We're generating your full Guzzler Score report and sending it to{" "}
-                <span className="font-medium text-foreground">{email.trim()}</span>. Check your
-                inbox in the next few minutes.
+                {/* A long address must wrap, not widen the card. */}
+                <span className="font-medium text-foreground break-all">{email.trim()}</span>. Check
+                your inbox in the next few minutes.
               </p>
             </div>
 

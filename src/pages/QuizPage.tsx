@@ -442,8 +442,11 @@ export default function QuizPage() {
 
   return (
     <Layout>
-      {/* Progress bar */}
-      <div className="bg-surface border-b border-border mt-6">
+      {/* Progress bar — sticks under the navbar on phones so the homeowner can
+          always see how far through the 12 questions they are without scrolling
+          back up. Static from md up, where the whole card fits on screen. */}
+      {/* 90px = the Navbar's mobile height (pt-3 + h-[68px] + pb-2.5). */}
+      <div className="bg-surface border-b border-border mt-6 sticky top-[90px] z-30 md:static">
         <div className="container py-3">
           <div className="flex items-center justify-between mb-1.5">
             <p className="text-xs font-semibold tracking-wide uppercase text-muted-foreground">
@@ -468,7 +471,9 @@ export default function QuizPage() {
         </div>
       </div>
 
-      <div ref={scrollRef} className="container py-8 max-w-xl">
+      {/* pb-28 reserves room for the fixed CoraBubble (48px launcher + inset) so
+          it can never sit on top of the Next / Continue button on a phone. */}
+      <div ref={scrollRef} className="container py-6 sm:py-8 pb-28 sm:pb-32 max-w-xl">
         <AnimatePresence mode="wait">
           {/* Intro */}
           {phase === "intro" && (

@@ -90,7 +90,7 @@ export default function IncompletePage() {
 
   return (
     <Layout>
-      <div className="container py-10 max-w-xl space-y-6">
+      <div className="container py-8 sm:py-10 max-w-xl space-y-5 sm:space-y-6">
         <div className="text-center">
           <h1 className="font-display font-extrabold text-2xl md:text-3xl text-foreground">
             Your GuzzlerScore Results

@@ -20,15 +20,17 @@ export default function GuzzlerScoreGauge({ score, tier, grade }: GuzzlerScoreGa
       initial={{ opacity: 0, scale: 0.92 }}
       animate={{ opacity: 1, scale: 1 }}
       transition={{ duration: 0.6, ease: "easeOut" }}
-      className={`rounded-2xl ${style.bg} border border-border p-6 md:p-8 text-center ${style.glow}`}
+      className={`rounded-2xl ${style.bg} border border-border p-5 sm:p-6 md:p-8 text-center ${style.glow}`}
     >
       <div className="inline-flex items-center gap-1.5 bg-foreground/5 text-foreground/70 px-3 py-1 rounded-full text-[11px] font-semibold tracking-widest uppercase mb-5">
         <Gauge className="w-3.5 h-3.5" />
         Your Guzzler Score
       </div>
 
-      <div className="relative inline-flex items-center justify-center mb-4">
-        <svg width="220" height="220" viewBox="0 0 220 220" className="-rotate-90">
+      {/* Fluid dial: the ring scales with the card instead of holding a fixed
+          220px, so it can never be the element that overflows a 320px phone. */}
+      <div className="relative mx-auto mb-4 w-full max-w-[220px] aspect-square">
+        <svg viewBox="0 0 220 220" className="w-full h-full -rotate-90">
           <circle
             cx="110"
             cy="110"
@@ -53,7 +55,7 @@ export default function GuzzlerScoreGauge({ score, tier, grade }: GuzzlerScoreGa
             initial={{ opacity: 0, y: 8 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.8, duration: 0.5 }}
-            className={`text-6xl font-display font-extrabold ${style.text} tabular-nums`}
+            className={`text-5xl sm:text-6xl font-display font-extrabold ${style.text} tabular-nums`}
           >
             {clamped}
           </motion.span>

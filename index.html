@@ -2,7 +2,10 @@
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <!-- viewport-fit=cover is what makes env(safe-area-inset-*) resolve to a real
+         value on notched devices — without it the inset is always 0 and the
+         safe-area padding in Layout.tsx silently does nothing. -->
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
     <title>GuzzlerScore — Know Your Score Before You Get a Quote</title>
     <meta name="description" content="Get your home's free GuzzlerScore — your HVAC system's health and efficiency rating, in minutes, with no salesman and no pressure." />
     <meta name="author" content="GuzzlerScore" />

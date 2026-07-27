@@ -43,8 +43,14 @@ export default function Navbar() {
           </Button>
         </div>
 
-        {/* Mobile toggle */}
-        <button className="md:hidden p-2" onClick={() => setOpen(!open)}>
+        {/* Mobile toggle — tap-target keeps it at the 44px minimum. */}
+        <button
+          type="button"
+          className="md:hidden tap-target -mr-2 inline-flex items-center justify-center rounded-lg text-foreground"
+          aria-label={open ? "Close menu" : "Open menu"}
+          aria-expanded={open}
+          onClick={() => setOpen(!open)}
+        >
           {open ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
         </button>
       </div>
