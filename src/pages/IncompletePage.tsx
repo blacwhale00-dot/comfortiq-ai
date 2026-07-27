@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import ConciergeMessage from "@/components/quiz/ConciergeMessage";
 import UnlockProgress from "@/components/quiz/UnlockProgress";
 import GuzzlerScoreGauge from "@/components/quiz/GuzzlerScoreGauge";
+import ShareScore from "@/components/quiz/ShareScore";
 import { supabase } from "@/integrations/supabase/client";
 import {
   UPLOAD_SLOTS,
@@ -121,6 +122,15 @@ export default function IncompletePage() {
             <ArrowRight className="w-5 h-5" />
           </a>
         </Button>
+
+        {/* The discount window closed, but the score is still theirs to share.
+            Same tier/grade derivation as the gauge above, so they can't differ. */}
+        {score != null && (
+          <ShareScore
+            result={{ score, grade: gradeForScore(score), tier: tierForScore(score) }}
+            delay={0.2}
+          />
+        )}
       </div>
     </Layout>
   );

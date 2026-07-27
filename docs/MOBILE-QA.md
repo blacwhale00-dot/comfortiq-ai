@@ -28,11 +28,18 @@ Chromium covers the default run so the only prerequisite is
 ## 2. Running the pass
 
 ```bash
+./node_modules/.bin/playwright install chromium chromium-headless-shell  # one-time
 npm run test:responsive                       # whole matrix
 npm run test:responsive -- --project=mobile-small
 PW_WEBKIT=1 npm run test:responsive           # adds real iOS/iPadOS Safari
 npm test                                      # unit-level camera/upload contract
 ```
+
+Install browsers with the **local** binary, not `npx playwright install`. npx can
+resolve a newer Playwright than the one in `node_modules`, leaving you with
+browser builds the pinned CLI refuses to launch ("Executable doesn't exist at
+…chromium_headless_shell-####"). `npm run test:responsive` always uses the local
+binary; if you see that error, re-run the install line above.
 
 The suite boots its own Vite dev server and stubs every Supabase call
 ([`e2e/helpers.ts`](../e2e/helpers.ts)) — it is hermetic and never writes rows to

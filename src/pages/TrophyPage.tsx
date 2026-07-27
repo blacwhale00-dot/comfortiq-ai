@@ -8,7 +8,9 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import ConciergeMessage from "@/components/quiz/ConciergeMessage";
 import UnlockProgress from "@/components/quiz/UnlockProgress";
-import { MAX_UNLOCK_VALUE } from "@/lib/guzzler-reveal";
+import ShareScore from "@/components/quiz/ShareScore";
+import { MAX_UNLOCK_VALUE, gradeForScore } from "@/lib/guzzler-reveal";
+import { tierForScore } from "@/lib/guzzler-score";
 import { UPLOAD_SLOTS, computeUploadProgress, type UploadSlotId } from "@/lib/upload-progress";
 import { supabase } from "@/integrations/supabase/client";
 
@@ -26,6 +28,9 @@ export default function TrophyPage() {
 
   const [stage, setStage] = useState<Stage>("capture");
   const [email, setEmail] = useState("");
+  // Persisted preliminary score, used only to render the share card. Null until
+  // the session loads (or if the session predates the guzzler_score column).
+  const [score, setScore] = useState<number | null>(null);
   const [touched, setTouched] = useState(false);
   const [sendError, setSendError] = useState(false);
 
@@ -55,7 +60,7 @@ export default function TrophyPage() {
       const { data, error } = await supabase
         .from("quiz_sessions")
         .select(
-          "email, upload_outdoor, upload_breaker, upload_thermostat, upload_air_handler, upload_bill",
+          "email, guzzler_score, upload_outdoor, upload_breaker, upload_thermostat, upload_air_handler, upload_bill",
         )
         .eq("id", sessionId)
         .maybeSingle();
@@ -70,6 +75,7 @@ export default function TrophyPage() {
       }
 
       if (data.email) setEmail((prev) => prev || data.email!);
+      setScore(data.guzzler_score);
     })();
     return () => {
       active = false;
@@ -224,6 +230,18 @@ export default function TrophyPage() {
               </a>
             </Button>
           </motion.div>
+        )}
+
+        {/* GOLD is the peak brag moment, so the share card lives here too —
+            below the report/booking actions so it never outranks them. Grade and
+            tier are derived from the same pure helpers the score screens use. */}
+        {score != null && (
+          <div className="text-left">
+            <ShareScore
+              result={{ score, grade: gradeForScore(score), tier: tierForScore(score) }}
+              delay={0.2}
+            />
+          </div>
         )}
       </div>
     </Layout>
