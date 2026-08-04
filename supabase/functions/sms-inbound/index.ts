@@ -7,6 +7,7 @@ import {
   OPT_OUT_CONFIRMATION,
 } from "../_shared/opt-out.ts";
 import { isValidTwilioSignature } from "../_shared/twilio-signature.ts";
+import { suppress, unsuppress } from "../_shared/suppression.ts";
 
 // Twilio inbound-SMS webhook. Set this function's URL as the "A MESSAGE COMES
 // IN" webhook (HTTP POST) on the Twilio number. Twilio POSTs
@@ -75,23 +76,18 @@ serve(async (req) => {
   );
 
   if (intent === "opt_out") {
-    const { error } = await supabase.from("suppression_list").upsert(
-      {
-        phone: from,
-        reason: "optout",
-        source: "sms-inbound",
-        last_inbound: body.slice(0, 500),
-        updated_at: new Date().toISOString(),
-      },
-      { onConflict: "phone" },
-    );
-    if (error) console.error("sms-inbound: suppression upsert failed:", error.message);
+    await suppress(supabase, {
+      channel: "sms",
+      address: from,
+      reason: "optout",
+      source: "sms-inbound",
+      lastInbound: body,
+    });
     return twiml(OPT_OUT_CONFIRMATION);
   }
 
   if (intent === "opt_in") {
-    const { error } = await supabase.from("suppression_list").delete().eq("phone", from);
-    if (error) console.error("sms-inbound: suppression delete failed:", error.message);
+    await unsuppress(supabase, "sms", from);
     return twiml(OPT_IN_CONFIRMATION);
   }
 

@@ -3,6 +3,12 @@ import { motion } from "framer-motion";
 import { Lock, Sparkles } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Checkbox } from "@/components/ui/checkbox";
+import {
+  PRIVACY_PATH,
+  SMS_CONSENT_BODY,
+  SMS_CONSENT_LABEL,
+} from "@/lib/sms-consent";
 
 export interface ResultsGateData {
   fullName: string;
@@ -10,6 +16,9 @@ export interface ResultsGateData {
   phone: string;
   streetAddress: string;
   zipCode: string;
+  // Did they tick the SMS box? Drives whether Cora's reminders are scheduled at
+  // all, and is recorded either way as consent evidence.
+  smsConsent: boolean;
 }
 
 interface ResultsGateProps {
@@ -23,6 +32,10 @@ export default function ResultsGate({ onSubmit, isSubmitting }: ResultsGateProps
   const [phone, setPhone] = useState("");
   const [streetAddress, setStreetAddress] = useState("");
   const [zipCode, setZipCode] = useState("");
+  // Unchecked by default and deliberately NOT part of `isValid` — under TCPA
+  // consent to marketing texts cannot be a condition of getting the service, so
+  // declining must still let you through to your results.
+  const [smsConsent, setSmsConsent] = useState(false);
 
   const isValid =
     fullName.trim().length >= 2 &&
@@ -40,6 +53,7 @@ export default function ResultsGate({ onSubmit, isSubmitting }: ResultsGateProps
         phone: phone.trim(),
         streetAddress: streetAddress.trim(),
         zipCode: zipCode.trim(),
+        smsConsent,
       });
   };
 
@@ -152,6 +166,43 @@ export default function ResultsGate({ onSubmit, isSubmitting }: ResultsGateProps
             autoComplete="postal-code"
             required
           />
+        </div>
+
+        {/* SMS consent. Optional by law — see the note on `smsConsent` above.
+            The copy is imported, not written inline, because the exact string
+            shown here is what gets stored as the consent record. */}
+        <div className="rounded-xl border border-border bg-surface p-4">
+          <div className="flex items-start gap-3">
+            <Checkbox
+              id="gate-sms-consent"
+              checked={smsConsent}
+              onCheckedChange={(checked) => setSmsConsent(checked === true)}
+              className="mt-0.5 shrink-0"
+            />
+            <div className="space-y-1.5">
+              <Label
+                htmlFor="gate-sms-consent"
+                className="text-foreground font-semibold text-sm leading-snug cursor-pointer"
+              >
+                {SMS_CONSENT_LABEL}
+              </Label>
+              <p className="text-[11px] text-muted-foreground leading-relaxed">
+                {SMS_CONSENT_BODY}{" "}
+                <a
+                  href={PRIVACY_PATH}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="underline hover:text-foreground"
+                >
+                  Privacy Policy
+                </a>
+                .
+              </p>
+            </div>
+          </div>
+          <p className="text-[11px] text-muted-foreground mt-3 pl-7">
+            Optional — you'll get your results either way.
+          </p>
         </div>
 
         <button

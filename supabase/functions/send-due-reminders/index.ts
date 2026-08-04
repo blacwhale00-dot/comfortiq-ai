@@ -1,6 +1,7 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { toE164 } from "../_shared/phone.ts";
+import { isSuppressed, suppress } from "../_shared/suppression.ts";
 
 // Cora SMS worker. Invoked ~every 5 minutes by pg_cron (see the
 // schedule_reminders migration). Sends every reminder whose send_at has passed,
@@ -40,6 +41,7 @@ interface ReminderRow {
 
 interface SessionRow {
   funnel_status: string | null;
+  sms_consent: boolean | null;
   upload_outdoor: string | null;
   upload_breaker: string | null;
   upload_thermostat: string | null;
@@ -181,13 +183,9 @@ serve(async (req) => {
 
       // Guard 1c: shared suppression list. Opt-outs captured by the sms-inbound
       // webhook (or a prior carrier 21610) live here; no outbound path may bypass
-      // this check (Will §5).
-      const { data: suppressed } = await supabase
-        .from("suppression_list")
-        .select("phone")
-        .eq("phone", to)
-        .maybeSingle();
-      if (suppressed) {
+      // this check (Will §5). Fails closed — a lookup error suppresses the send
+      // rather than letting it through (see _shared/suppression.ts).
+      if (await isSuppressed(supabase, "sms", to)) {
         await supabase
           .from("cora_reminders")
           .update({ status: "skipped", last_error: "suppressed (opt-out)" })
@@ -196,15 +194,34 @@ serve(async (req) => {
         continue;
       }
 
-      // Guard 2: lead already resolved (GOLD or booked) → suppress. One cheap
-      // read of the session row; no timer/copy recomputation.
+      // One cheap read of the session row, serving guards 1d and 2 below.
       const { data: session } = await supabase
         .from("quiz_sessions")
-        .select("funnel_status, upload_outdoor, upload_breaker, upload_thermostat, upload_bill")
+        .select(
+          "funnel_status, sms_consent, upload_outdoor, upload_breaker, upload_thermostat, upload_bill",
+        )
         .eq("id", r.quiz_session_id)
         .single();
 
-      if (session && isResolved(session as SessionRow)) {
+      // Guard 1d: TCPA consent. The client already gates on this before writing
+      // reminder rows, but the client's word is not evidence — a row can be
+      // inserted directly against the anon INSERT policy on cora_reminders. This
+      // is the authoritative check.
+      //
+      // Fails closed: no session row, or a null/false flag, means no send. That
+      // includes every session predating consent capture (the column defaults to
+      // false), which is exactly right — we never inferred consent retroactively.
+      if (!session || session.sms_consent !== true) {
+        await supabase
+          .from("cora_reminders")
+          .update({ status: "skipped", last_error: "no SMS consent on record" })
+          .eq("id", r.id);
+        summary.skipped++;
+        continue;
+      }
+
+      // Guard 2: lead already resolved (GOLD or booked) → suppress.
+      if (isResolved(session as SessionRow)) {
         await supabase
           .from("cora_reminders")
           .update({ status: "skipped", last_error: "lead already resolved" })
@@ -230,15 +247,12 @@ serve(async (req) => {
       } else if (result.kind === "optout") {
         // Carrier-level opt-out. Record it in the shared suppression list so no
         // future send (any channel) reaches this number, then skip the reminder.
-        await supabase.from("suppression_list").upsert(
-          {
-            phone: to,
-            reason: "optout",
-            source: "send-due-reminders",
-            updated_at: new Date().toISOString(),
-          },
-          { onConflict: "phone" },
-        );
+        await suppress(supabase, {
+          channel: "sms",
+          address: to,
+          reason: "optout",
+          source: "send-due-reminders",
+        });
         await supabase
           .from("cora_reminders")
           .update({ status: "skipped", attempts, last_error: result.error })

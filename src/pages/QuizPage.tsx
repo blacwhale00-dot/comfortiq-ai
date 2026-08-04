@@ -20,6 +20,10 @@ import { deriveRevealData } from "@/lib/guzzler-reveal";
 import { getStoredEntryIntent } from "@/lib/entry-intent";
 import { persistLeadSource } from "@/lib/lead-source";
 import { buildCoraReminders } from "@/lib/cora-reminders";
+import {
+  SMS_CONSENT_VERSION,
+  smsConsentDisclosureText,
+} from "@/lib/sms-consent";
 import { trackFunnelEvent } from "@/lib/funnel-events";
 
 type Phase = "intro" | "question" | "gate" | "analyzing" | "results";
@@ -107,6 +111,35 @@ function stampQuizCompletedAt(quizSessionId: string, completedAt: string) {
 // RLS (42501) because cora_reminders deliberately has no SELECT policy for
 // anon (rows hold phone numbers), and the conflict-arbitration path needs row
 // visibility. Any other error is logged without breaking the quiz.
+// Record the TCPA consent decision — both a yes and a no. A declined row is
+// evidence we asked and were told no, which is worth as much as a yes if the
+// question ever comes up. Append-only (see the consent_records migration);
+// fire-and-forget so it can never break the quiz.
+function persistSmsConsent(
+  quizSessionId: string,
+  phone: string,
+  consented: boolean,
+) {
+  void supabase
+    .from("consent_records")
+    .insert({
+      quiz_session_id: quizSessionId,
+      channel: "sms",
+      address: phone,
+      consented,
+      disclosure_version: SMS_CONSENT_VERSION,
+      // Stored verbatim — the record has to show what THEY saw, not what a
+      // later build says.
+      disclosure_text: smsConsentDisclosureText(),
+      method: "web_form",
+      page_url: typeof window !== "undefined" ? window.location.href : null,
+      user_agent: typeof navigator !== "undefined" ? navigator.userAgent : null,
+    })
+    .then(({ error }) => {
+      if (error) console.warn("consent_records not persisted:", error.message);
+    });
+}
+
 function persistCoraReminders(
   quizSessionId: string,
   completedAt: string,
@@ -218,14 +251,31 @@ export default function QuizPage() {
       if (idx === -1) return;
       const opt = quizQuestions[idx].options.find((o) => o.value === String(value));
       try {
+        // ⚠️ BROKEN AGAINST THE LIVE SCHEMA — this write has never succeeded on
+        // this database, and the cast below is what keeps that fact visible
+        // rather than compiling it away.
+        //
+        // The payload targets ComfortIQ's intended quiz_answers shape (quiz_id,
+        // question_number, answer_text) defined in
+        // supabase/_pending_redesign/20260622000000_quiz_answers.sql — which was
+        // never applied. The quiz_answers table that actually exists is D.A.V.E's:
+        // (id, homeowner_id NOT NULL, question_id uuid NOT NULL, answer_value
+        // text NOT NULL, created_at). None of quiz_id / question_number /
+        // answer_text exist there, question_id is a uuid rather than a slug like
+        // "system_age", and homeowner_id is required and never supplied.
+        //
+        // It fails silently: supabase-js RESOLVES with { error } instead of
+        // throwing, so this catch never fires and nothing is logged. Behaviour is
+        // left exactly as-is pending a decision on which schema is correct —
+        // apply the pending migration, or rewrite this against D.A.V.E's table.
         await supabase.from("quiz_answers").upsert(
           {
             quiz_id: quizId,
             question_number: idx + 1,
             question_id: questionId,
-            answer_value: opt?.weight ?? 0,
+            answer_value: String(opt?.weight ?? 0),
             answer_text: opt?.label ?? String(value),
-          },
+          } as never,
           { onConflict: "quiz_id,question_number" },
         );
       } catch (err) {
@@ -341,6 +391,10 @@ export default function QuizPage() {
         street_address: data.streetAddress,
         zip_code: data.zipCode,
         funnel_status: "quiz_complete",
+        // The flag send-due-reminders gates on. Only ever set from an
+        // affirmative tick — never defaulted true, never inferred.
+        sms_consent: data.smsConsent,
+        sms_consent_at: data.smsConsent ? new Date().toISOString() : null,
       };
 
       if (activeId) {
@@ -369,7 +423,13 @@ export default function QuizPage() {
         // so their 48h windows can never drift apart.
         const completedAt = new Date().toISOString();
         stampQuizCompletedAt(activeId, completedAt);
-        persistCoraReminders(activeId, completedAt, firstName, data.phone);
+        // Log the consent decision either way, then schedule reminders ONLY on
+        // an affirmative one. No consent, no drip — the worker independently
+        // re-checks this server-side, so this is the first of two gates.
+        persistSmsConsent(activeId, data.phone, data.smsConsent);
+        if (data.smsConsent) {
+          persistCoraReminders(activeId, completedAt, firstName, data.phone);
+        }
         trackFunnelEvent(activeId, "contact_submitted");
         await linkPropertyIntelligence(activeId, data);
       }

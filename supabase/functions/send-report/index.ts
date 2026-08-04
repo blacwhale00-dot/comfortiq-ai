@@ -2,6 +2,7 @@ import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { generateReportPdf, type ReportModel } from "./pdf.ts";
 import { buildReportEmailHtml, sendReportEmail } from "./email.ts";
+import { isSuppressed } from "../_shared/suppression.ts";
 
 // GOLD report handoff — the trigger behind the Trophy screen's "Send My Report".
 //
@@ -235,6 +236,23 @@ serve(async (req) => {
         : null;
     if (!email) {
       return json({ error: "A valid email is required." }, 400);
+    }
+
+    // Suppression gate — runs before ANY send, on every channel (Will §5).
+    // Checked here rather than inside renderAndSendReport so a suppressed
+    // address never even triggers PDF generation or storage.
+    //
+    // NOTE: this deliberately blocks even a homeowner who just clicked "Send My
+    // Report", because the standing rule is "no sends to anyone on the list, no
+    // exceptions". If we later decide a user-initiated transactional report
+    // should outrank a marketing unsubscribe, that's a product decision to make
+    // explicitly — not something to quietly special-case here.
+    if (await isSuppressed(supabase, "email", email)) {
+      console.warn("send-report: recipient is suppressed, no email sent");
+      return json({
+        status: "suppressed",
+        error: "This email address has unsubscribed. Nothing was sent.",
+      }, 403);
     }
 
     // Idempotency: one handoff per session. Already sent → report it; mid-render
