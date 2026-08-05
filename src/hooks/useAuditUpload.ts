@@ -4,10 +4,14 @@ import type { TablesUpdate } from "@/integrations/supabase/types";
 import {
   UPLOAD_SLOTS,
   computeUploadProgress,
+  extensionForUpload,
+  validateUploadFile,
   type UploadProgress,
   type UploadSlotId,
 } from "@/lib/upload-progress";
 import { trackFunnelEvent } from "@/lib/funnel-events";
+import { toast } from "@/hooks/use-toast";
+import { getQuizSession, updateQuizSession } from "@/lib/quiz-session";
 
 export type SlotState = { uploaded: boolean; uploading: boolean };
 
@@ -37,12 +41,8 @@ export function useAuditUpload(sessionId: string | null): AuditUpload {
     if (!sessionId) return;
     let active = true;
     void (async () => {
-      const { data, error } = await supabase
-        .from("quiz_sessions")
-        .select("upload_outdoor, upload_breaker, upload_thermostat, upload_air_handler, upload_bill")
-        .eq("id", sessionId)
-        .maybeSingle();
-      if (!active || error || !data) return;
+      const data = await getQuizSession(sessionId);
+      if (!active || !data) return;
       setSlots((prev) => {
         const next = { ...prev };
         for (const slot of UPLOAD_SLOTS) {
@@ -57,32 +57,17 @@ export function useAuditUpload(sessionId: string | null): AuditUpload {
   }, [sessionId]);
 
   // Resolve the 48h window anchor: the precise quiz-completion stamp when
-  // available, else created_at — so the timer works even before the
-  // quiz_completed_at migration is applied (a missing column errors the first
-  // query, and we fall back rather than break).
+  // available, else created_at. This used to need a second query as a fallback
+  // in case quiz_completed_at hadn't been migrated yet; the gateway returns the
+  // whole row in one call, so the column is either present or simply null.
   const [startedAt, setStartedAt] = useState<string | null>(null);
   useEffect(() => {
     if (!sessionId) return;
     let active = true;
     void (async () => {
-      const primary = await supabase
-        .from("quiz_sessions")
-        .select("quiz_completed_at, created_at")
-        .eq("id", sessionId)
-        .maybeSingle();
-      if (!active) return;
-      if (!primary.error && primary.data) {
-        setStartedAt(primary.data.quiz_completed_at ?? primary.data.created_at);
-        return;
-      }
-      const fallback = await supabase
-        .from("quiz_sessions")
-        .select("created_at")
-        .eq("id", sessionId)
-        .maybeSingle();
-      if (active && !fallback.error && fallback.data) {
-        setStartedAt(fallback.data.created_at);
-      }
+      const session = await getQuizSession(sessionId);
+      if (!active || !session) return;
+      setStartedAt(session.quiz_completed_at ?? session.created_at);
     })();
     return () => {
       active = false;
@@ -102,31 +87,56 @@ export function useAuditUpload(sessionId: string | null): AuditUpload {
     const slot = UPLOAD_SLOTS.find((s) => s.id === slotId);
     if (!slot) return;
 
+    // Validate before touching the network. The input's `accept` attribute only
+    // filters the file picker's default view; it stops nothing.
+    const check = validateUploadFile(slot, file);
+    if (!check.ok) {
+      toast({
+        variant: "destructive",
+        title: "That file won't work",
+        description: check.reason,
+      });
+      return;
+    }
+
     setSlots((prev) => ({ ...prev, [slotId]: { ...prev[slotId], uploading: true } }));
 
     try {
-      const ext = file.name.split(".").pop();
-      const path = `${sessionId}/${slotId}-${Date.now()}.${ext}`;
+      // Extension comes from the file's type, never its name — see
+      // extensionForUpload. Date.now() keeps re-uploads of the same slot from
+      // colliding, so a retry never silently overwrites the previous attempt.
+      const path = `${sessionId}/${slotId}-${Date.now()}.${extensionForUpload(file)}`;
 
-      const { error: uploadError } = await supabase.storage.from("audit-uploads").upload(path, file);
+      const { error: uploadError } = await supabase.storage
+        .from("audit-uploads")
+        .upload(path, file, { contentType: file.type, upsert: false });
       if (uploadError) throw uploadError;
-
-      const { data: urlData } = supabase.storage.from("audit-uploads").getPublicUrl(path);
 
       const progressAfter = computeUploadProgress(new Set([...uploadedIds, slotId]));
       const tier = progressAfter.dataTier;
       const update: TablesUpdate<"quiz_sessions"> = {
         funnel_status: `audit_${tier.toLowerCase()}`,
       };
-      update[slot.uploadKey] = urlData.publicUrl;
-      await supabase.from("quiz_sessions").update(update).eq("id", sessionId);
+      // Store the STORAGE PATH, not a public URL. The bucket is private, so a
+      // URL would 404 anyway — and a public URL sitting in a readable column is
+      // exactly how these photos (including the electric bill) leaked before.
+      // Anything that needs to display one signs it on demand, server-side.
+      update[slot.uploadKey] = path;
+      await updateQuizSession(sessionId, update);
 
       trackFunnelEvent(sessionId, "photo_uploaded", slotId, { tier });
       if (progressAfter.isComplete) trackFunnelEvent(sessionId, "audit_complete");
 
       setSlots((prev) => ({ ...prev, [slotId]: { uploaded: true, uploading: false } }));
     } catch (err) {
+      // Tell the homeowner. Silently resetting the tile to "not uploaded" looks
+      // like the tap didn't register, so they retry the same failing file.
       console.error("Upload failed:", err);
+      toast({
+        variant: "destructive",
+        title: "Upload failed",
+        description: "That didn't go through. Check your connection and try again.",
+      });
       setSlots((prev) => ({ ...prev, [slotId]: { uploaded: false, uploading: false } }));
     }
   };

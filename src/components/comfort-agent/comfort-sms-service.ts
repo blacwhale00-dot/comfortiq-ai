@@ -3,6 +3,29 @@
 // Built by Tandem AI for ComfortIQ.AI
 // 7-Touch Recovery Sequence
 // ============================================================
+//
+// ⚠️ COPY ONLY — NOT WIRED TO ANY SENDER, AND NOT SAFE TO WIRE UP AS-IS.
+//
+// This module builds message strings. Nothing here sends, schedules or touches
+// the database, and nothing outside this file imports it today.
+//
+// Before any of it reaches a real handset it MUST pass the two gates the live
+// SMS rail already enforces — neither of which this file knows anything about:
+//
+//   1. CONSENT. quiz_sessions.sms_consent must be true for that session.
+//      Recorded at the quiz gate (src/lib/sms-consent.ts) and re-checked
+//      server-side in supabase/functions/send-due-reminders.
+//   2. SUPPRESSION. The number must not be in suppression_list. Check via
+//      isSuppressed() in supabase/functions/_shared/suppression.ts, which
+//      fails closed.
+//
+// Sending marketing texts without (1) is a TCPA violation; ignoring (2) breaks
+// an opt-out we are legally obliged to honour. Follow the pattern in
+// send-due-reminders rather than calling Twilio from anywhere new — and note
+// these sequences are marketing, so they get no transactional exception.
+//
+// If this is dead weight, delete it. A half-wired second SMS path is worse than
+// no second SMS path.
 
 export type TouchType =
   | "welcome"

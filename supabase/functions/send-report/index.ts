@@ -238,21 +238,23 @@ serve(async (req) => {
       return json({ error: "A valid email is required." }, 400);
     }
 
-    // Suppression gate — runs before ANY send, on every channel (Will §5).
-    // Checked here rather than inside renderAndSendReport so a suppressed
-    // address never even triggers PDF generation or storage.
+    // Suppression check — runs before ANY send (Will §5), here rather than
+    // inside renderAndSendReport so the decision is made before we spend work.
     //
-    // NOTE: this deliberately blocks even a homeowner who just clicked "Send My
-    // Report", because the standing rule is "no sends to anyone on the list, no
-    // exceptions". If we later decide a user-initiated transactional report
-    // should outrank a marketing unsubscribe, that's a product decision to make
-    // explicitly — not something to quietly special-case here.
-    if (await isSuppressed(supabase, "email", email)) {
-      console.warn("send-report: recipient is suppressed, no email sent");
-      return json({
-        status: "suppressed",
-        error: "This email address has unsubscribed. Nothing was sent.",
-      }, 403);
+    // TRANSACTIONAL EXCEPTION (Will's ruling, 2026-08-03): a report the
+    // homeowner explicitly asked for is transactional, not marketing, so an
+    // unsubscribe does NOT block it. The send proceeds, is one-time, does not
+    // re-enroll them in anything, and is recorded on report_requests so the
+    // override is auditable rather than invisible.
+    //
+    // This exception is scoped to THIS function, which only ever runs on a
+    // direct "Send My Report" click. The Priority-3 marketing emails must keep
+    // hard-blocking — see 20260803030000_report_suppression_override.sql.
+    const suppressedRecipient = await isSuppressed(supabase, "email", email);
+    if (suppressedRecipient) {
+      console.warn(
+        "send-report: recipient is on suppression_list; proceeding as an explicitly-requested transactional send",
+      );
     }
 
     // Idempotency: one handoff per session. Already sent → report it; mid-render
@@ -274,7 +276,14 @@ serve(async (req) => {
     const { data: request, error: upsertError } = await supabase
       .from("report_requests")
       .upsert(
-        { quiz_session_id: sessionId, email, status: "rendering" },
+        {
+          quiz_session_id: sessionId,
+          email,
+          status: "rendering",
+          // Audit trail for the transactional exception above.
+          suppression_override: suppressedRecipient,
+          suppression_override_at: suppressedRecipient ? new Date().toISOString() : null,
+        },
         { onConflict: "quiz_session_id" },
       )
       .select("id")

@@ -27,8 +27,21 @@ const BATCH_SIZE = 50;
 const TWILIO_STOPPED_CODE = 21610;
 
 // Session funnel_status values that mean the lead is already resolved, so the
-// reminder is moot. GOLD (all 4 photos in) is detected separately below.
+// reminder is moot. GOLD is detected separately below.
 const RESOLVED_STATUSES = new Set(["booked", "audit_booked", "audit_complete"]);
+
+// The five uploads that define GOLD. Mirrors src/lib/upload-progress.ts and the
+// identical list in send-report — all three must agree, or a lead ends up in a
+// dead zone: treated as finished here (so the nudges stop) while still failing
+// send-report's GOLD guard (so no report ever arrives). upload_air_handler was
+// missing from this list, which put exactly that lead in limbo.
+const GOLD_UPLOAD_KEYS = [
+  "upload_outdoor",
+  "upload_breaker",
+  "upload_thermostat",
+  "upload_air_handler",
+  "upload_bill",
+] as const;
 
 interface ReminderRow {
   id: string;
@@ -39,23 +52,15 @@ interface ReminderRow {
   attempts: number;
 }
 
-interface SessionRow {
+type SessionRow = {
   funnel_status: string | null;
   sms_consent: boolean | null;
-  upload_outdoor: string | null;
-  upload_breaker: string | null;
-  upload_thermostat: string | null;
-  upload_bill: string | null;
-}
+} & Record<(typeof GOLD_UPLOAD_KEYS)[number], string | null>;
 
 // A lead is "resolved" — and so should not be nudged — once they've reached
-// GOLD (all four equipment photos uploaded) or booked an audit.
+// GOLD (all five uploads in) or booked an audit.
 function isResolved(session: SessionRow): boolean {
-  const reachedGold =
-    !!session.upload_outdoor &&
-    !!session.upload_breaker &&
-    !!session.upload_thermostat &&
-    !!session.upload_bill;
+  const reachedGold = GOLD_UPLOAD_KEYS.every((k) => !!session[k]);
   const booked = !!session.funnel_status && RESOLVED_STATUSES.has(session.funnel_status);
   return reachedGold || booked;
 }
@@ -197,9 +202,7 @@ serve(async (req) => {
       // One cheap read of the session row, serving guards 1d and 2 below.
       const { data: session } = await supabase
         .from("quiz_sessions")
-        .select(
-          "funnel_status, sms_consent, upload_outdoor, upload_breaker, upload_thermostat, upload_bill",
-        )
+        .select(["funnel_status", "sms_consent", ...GOLD_UPLOAD_KEYS].join(", "))
         .eq("id", r.quiz_session_id)
         .single();
 

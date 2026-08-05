@@ -698,6 +698,21 @@ function sbInsert(table, row) {
     body: JSON.stringify(row)
   }).then(function (r) { if (!r.ok) throw new Error('save failed (' + r.status + ')'); return r.json(); });
 }
+/* quiz_sessions is no longer writable directly: anon lost table access when the
+   RPC gateway landed (20260803050000_quiz_session_rpc_gateway.sql), because the
+   old policies let anyone read or overwrite every lead. Creating a session now
+   goes through quiz_session_create, which returns the new id.
+   sbInsert above still serves funnel_events, which keeps its anon INSERT policy. */
+function sbRpc(fn, args) {
+  return fetch(SB_URL + '/rest/v1/rpc/' + fn, {
+    method: 'POST',
+    headers: { apikey: SB_KEY, 'Content-Type': 'application/json' },
+    body: JSON.stringify(args)
+  }).then(function (r) { if (!r.ok) throw new Error('save failed (' + r.status + ')'); return r.json(); });
+}
+function sbCreateSession(row) {
+  return sbRpc('quiz_session_create', { p_patch: row });
+}
 function sourceParams() {
   var p = {};
   var utmSource = here.get('utm_source') || here.get('src') || here.get('partner');
@@ -752,10 +767,10 @@ document.getElementById('q-submit').addEventListener('click', function () {
     funnel_status: 'quote_request',
     lead_source: (here.get('src') || here.get('partner')) && (here.get('src') || here.get('partner')) !== 'guzzlerscore_landing' ? 'partner' : (here.get('utm_medium') ? 'paid' : 'direct')
   }, sourceParams());
-  sbInsert('quiz_sessions', row).then(function (rows) {
+  sbCreateSession(row).then(function (newId) {
     // Log the touchpoint: quote path, callback window, explicit TCPA consent.
     return sbInsert('funnel_events', {
-      quiz_session_id: rows[0] && rows[0].id,
+      quiz_session_id: newId,
       event_type: 'contact_submitted',
       step: 'quote_form',
       metadata: { path: 'quote', callback_window: formState.window, intent: formState.intent, tcpa_consent: true, consent_wording: 'one_to_one_v1' }
@@ -788,7 +803,7 @@ document.getElementById('exit-submit').addEventListener('click', function () {
   var email = document.getElementById('exit-email').value.trim();
   var err = document.getElementById('exit-err');
   if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)) { err.textContent = 'Enter a valid email.'; err.style.display = 'block'; return; }
-  sbInsert('quiz_sessions', Object.assign({ email: email, funnel_status: 'newsletter' }, sourceParams()))
+  sbCreateSession(Object.assign({ email: email, funnel_status: 'newsletter' }, sourceParams()))
     .then(function () {
       modal.querySelector('.exit-card').innerHTML = '<div class="form-done"><div class="check">📬</div><h3>Guide on the way.</h3><p>Check your inbox — and welcome to the straight-talk side of HVAC.</p></div>';
     })

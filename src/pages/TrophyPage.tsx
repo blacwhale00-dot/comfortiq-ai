@@ -13,6 +13,7 @@ import { MAX_UNLOCK_VALUE, gradeForScore } from "@/lib/guzzler-reveal";
 import { tierForScore } from "@/lib/guzzler-score";
 import { UPLOAD_SLOTS, computeUploadProgress, type UploadSlotId } from "@/lib/upload-progress";
 import { supabase } from "@/integrations/supabase/client";
+import { getQuizSession } from "@/lib/quiz-session";
 
 // Book-a-free-audit destination from the Build Order.
 const BOOK_AUDIT_URL = "https://app.smbsolution.ai/audit?ref=dma-8d24de6b";
@@ -57,14 +58,8 @@ export default function TrophyPage() {
     if (!sessionId) return;
     let active = true;
     void (async () => {
-      const { data, error } = await supabase
-        .from("quiz_sessions")
-        .select(
-          "email, guzzler_score, upload_outdoor, upload_breaker, upload_thermostat, upload_air_handler, upload_bill",
-        )
-        .eq("id", sessionId)
-        .maybeSingle();
-      if (!active || error || !data) return;
+      const data = await getQuizSession(sessionId);
+      if (!active || !data) return;
 
       const uploaded = new Set<UploadSlotId>(
         UPLOAD_SLOTS.filter((s) => data[s.uploadKey]).map((s) => s.id),

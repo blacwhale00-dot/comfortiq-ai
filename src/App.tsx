@@ -18,7 +18,8 @@ import PrivacyPage from "./pages/PrivacyPage.tsx";
 import CashFlowCloserPage from "./pages/CashFlowCloserPage.tsx";
 import IntelligencePage from "./pages/IntelligencePage.tsx";
 import NewsletterPage from "./pages/NewsletterPage.tsx";
-import CommandCenterPage from "./pages/CommandCenterPage.tsx";
+// CommandCenterPage is intentionally NOT imported or routed — see the note on
+// the removed /command-center route below.
 import NotFound from "./pages/NotFound.tsx";
 
 const queryClient = new QueryClient();
@@ -52,7 +53,20 @@ const App = () => (
             <Route path="/cash-flow" element={<CashFlowCloserPage />} />
             <Route path="/intelligence" element={<IntelligencePage />} />
             <Route path="/newsletter" element={<NewsletterPage />} />
-            <Route path="/command-center" element={<CommandCenterPage />} />
+            {/*
+              /command-center is OFFLINE pending authentication.
+
+              It is an internal CRM that lists every lead — name, email, phone,
+              address — and it had no login of any kind, so the whole table was
+              readable by anyone who knew the URL. It also read quiz_sessions
+              directly, which anon no longer has access to at all (see
+              20260803050000_quiz_session_rpc_gateway.sql).
+
+              The page and src/lib/command-center.ts are deliberately kept in the
+              repo, tested and intact. To restore: put it behind Supabase Auth
+              with an admin role, and have it read through an edge function using
+              the service role rather than the anon client.
+            */}
             <Route path="*" element={<NotFound />} />
           </Routes>
         </BrowserRouter>

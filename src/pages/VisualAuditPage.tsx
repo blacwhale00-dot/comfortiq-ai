@@ -13,6 +13,7 @@ import { useAuditUpload } from "@/hooks/useAuditUpload";
 import { UPLOAD_SLOTS } from "@/lib/upload-progress";
 import RepairHistoryChat, { type RepairAnalysisDone } from "@/components/quiz/RepairHistoryChat";
 import RepairReplaceResults from "@/components/quiz/RepairReplaceResults";
+import { getQuizSession, updateQuizSession } from "@/lib/quiz-session";
 
 // Shape returned by the analyze-audit edge function.
 interface RoiReport {
@@ -40,14 +41,9 @@ export default function VisualAuditPage() {
   const [repairResult, setRepairResult] = useState<RepairAnalysisDone | null>(null);
   useEffect(() => {
     if (!sessionId) return;
-    void supabase
-      .from("quiz_sessions")
-      .select("system_age, guzzler_score")
-      .eq("id", sessionId)
-      .maybeSingle()
-      .then(({ data }) => {
-        if (data) setSessionFacts({ age: data.system_age, score: data.guzzler_score });
-      });
+    void getQuizSession(sessionId).then((data) => {
+      if (data) setSessionFacts({ age: data.system_age, score: data.guzzler_score });
+    });
   }, [sessionId]);
 
   // No session means they skipped the quiz — send them back to start it.
@@ -85,14 +81,11 @@ export default function VisualAuditPage() {
       if (error) throw error;
       setRoiReport(data?.report || null);
 
-      await supabase
-        .from("quiz_sessions")
-        .update({
-          total_discount_earned: progress.unlockedValue,
-          funnel_status: "audit_complete",
-          roi_report: data?.report ?? null,
-        })
-        .eq("id", sessionId);
+      await updateQuizSession(sessionId, {
+        total_discount_earned: progress.unlockedValue,
+        funnel_status: "audit_complete",
+        roi_report: data?.report ?? null,
+      });
     } catch (err) {
       console.error("Analysis failed:", err);
     } finally {

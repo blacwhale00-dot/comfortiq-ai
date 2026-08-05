@@ -6,10 +6,9 @@ import Layout from "@/components/Layout";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { supabase } from "@/integrations/supabase/client";
-import type { TablesInsert } from "@/integrations/supabase/types";
 import guzzlerLogo from "@/assets/guzzler-score-logo.png";
 import { storeEntryIntent } from "@/lib/entry-intent";
+import { createQuizSession } from "@/lib/quiz-session";
 
 // Door 3 of the entry chooser: "The Guzzler Score" newsletter. Captures an email
 // for the not-ready-yet visitor. Stored as a quiz_sessions row tagged
@@ -29,13 +28,12 @@ export default function NewsletterPage() {
     setSubmitting(true);
     setError(null);
     try {
-      const record: TablesInsert<"quiz_sessions"> = {
+      const newId = await createQuizSession({
         first_name: firstName.trim() || null,
         email: email.trim(),
         funnel_status: "newsletter",
-      };
-      const { error: insertError } = await supabase.from("quiz_sessions").insert(record);
-      if (insertError) throw insertError;
+      });
+      if (!newId) throw new Error("Could not record newsletter signup");
 
       storeEntryIntent("newsletter");
       setDone(true);

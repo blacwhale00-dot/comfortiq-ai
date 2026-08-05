@@ -20,11 +20,9 @@ import { deriveRevealData } from "@/lib/guzzler-reveal";
 import { getStoredEntryIntent } from "@/lib/entry-intent";
 import { persistLeadSource } from "@/lib/lead-source";
 import { buildCoraReminders } from "@/lib/cora-reminders";
-import {
-  SMS_CONSENT_VERSION,
-  smsConsentDisclosureText,
-} from "@/lib/sms-consent";
+import { SMS_CONSENT_VERSION } from "@/lib/sms-consent";
 import { trackFunnelEvent } from "@/lib/funnel-events";
+import { createQuizSession, stampQuizCompleted, updateQuizSession } from "@/lib/quiz-session";
 
 type Phase = "intro" | "question" | "gate" | "analyzing" | "results";
 
@@ -78,28 +76,15 @@ function buildPainPayload(answers: Record<string, string | number>) {
 function persistEntryIntent(quizSessionId: string) {
   const intent = getStoredEntryIntent();
   if (!intent || intent === "newsletter") return;
-  void supabase
-    .from("quiz_sessions")
-    .update({ entry_intent: intent })
-    .eq("id", quizSessionId)
-    .then(({ error }) => {
-      if (error) console.warn("entry_intent not persisted:", error.message);
-    });
+  void updateQuizSession(quizSessionId, { entry_intent: intent });
 }
 
 // Stamp the moment the quiz is completed — the anchor for the 48h upload window
-// (see guzzler-timer.ts). First-write-wins via `.is(null)` so the countdown never
-// resets on a re-submit. Fire-and-forget; if the column isn't migrated yet,
-// Supabase returns an error we just log and the timer falls back to created_at.
+// (see guzzler-timer.ts). First-write-wins is enforced server-side so the
+// countdown never resets on a re-submit. Fire-and-forget: the quiz must not
+// block on it.
 function stampQuizCompletedAt(quizSessionId: string, completedAt: string) {
-  void supabase
-    .from("quiz_sessions")
-    .update({ quiz_completed_at: completedAt })
-    .eq("id", quizSessionId)
-    .is("quiz_completed_at", null)
-    .then(({ error }) => {
-      if (error) console.warn("quiz_completed_at not stamped:", error.message);
-    });
+  void stampQuizCompleted(quizSessionId, completedAt);
 }
 
 // Build + persist Cora's 5 reminder SMS rows at quiz completion. The TS engine
@@ -120,23 +105,22 @@ function persistSmsConsent(
   phone: string,
   consented: boolean,
 ) {
+  // The client sends WHETHER they consented and which disclosure version was on
+  // screen — never the disclosure wording itself. The server looks the text up
+  // from that version and stores it, so a record can only ever describe a
+  // disclosure we actually published (20260803070000_consent_records_gateway).
   void supabase
-    .from("consent_records")
-    .insert({
-      quiz_session_id: quizSessionId,
-      channel: "sms",
-      address: phone,
-      consented,
-      disclosure_version: SMS_CONSENT_VERSION,
-      // Stored verbatim — the record has to show what THEY saw, not what a
-      // later build says.
-      disclosure_text: smsConsentDisclosureText(),
-      method: "web_form",
-      page_url: typeof window !== "undefined" ? window.location.href : null,
-      user_agent: typeof navigator !== "undefined" ? navigator.userAgent : null,
+    .rpc("consent_record_create", {
+      p_quiz_session_id: quizSessionId,
+      p_channel: "sms",
+      p_address: phone,
+      p_consented: consented,
+      p_version: SMS_CONSENT_VERSION,
+      p_page_url: typeof window !== "undefined" ? window.location.href : null,
+      p_user_agent: typeof navigator !== "undefined" ? navigator.userAgent : null,
     })
     .then(({ error }) => {
-      if (error) console.warn("consent_records not persisted:", error.message);
+      if (error) console.warn("consent record not persisted:", error.message);
     });
 }
 
@@ -221,19 +205,15 @@ export default function QuizPage() {
 
       try {
         if (sessionId) {
-          await supabase.from("quiz_sessions").update(data).eq("id", sessionId);
+          await updateQuizSession(sessionId, data);
           return sessionId;
         }
-        const { data: inserted } = await supabase
-          .from("quiz_sessions")
-          .insert(data)
-          .select("id")
-          .single();
-        if (inserted) {
-          setSessionId(inserted.id);
-          persistEntryIntent(inserted.id);
-          void persistLeadSource(inserted.id);
-          return inserted.id;
+        const newId = await createQuizSession(data);
+        if (newId) {
+          setSessionId(newId);
+          persistEntryIntent(newId);
+          void persistLeadSource(newId);
+          return newId;
         }
       } catch (err) {
         console.error("Failed to save:", err);
@@ -398,22 +378,17 @@ export default function QuizPage() {
       };
 
       if (activeId) {
-        await supabase.from("quiz_sessions").update(baseRecord).eq("id", activeId);
+        await updateQuizSession(activeId, baseRecord);
       } else {
-        const insertData: TablesInsert<"quiz_sessions"> = {
+        const newId = await createQuizSession({
           ...buildPainPayload(answers),
           ...baseRecord,
-        };
-        const { data: inserted } = await supabase
-          .from("quiz_sessions")
-          .insert(insertData)
-          .select("id")
-          .single();
-        if (inserted) {
-          activeId = inserted.id;
-          setSessionId(inserted.id);
-          persistEntryIntent(inserted.id);
-          void persistLeadSource(inserted.id);
+        });
+        if (newId) {
+          activeId = newId;
+          setSessionId(newId);
+          persistEntryIntent(newId);
+          void persistLeadSource(newId);
         }
       }
 
@@ -495,16 +470,10 @@ export default function QuizPage() {
     // guzzler_report — the exact values shown here, no scoring logic duplicated
     // server-side. Fire and forget — the reveal shouldn't wait on this write.
     if (sessionId) {
-      void supabase
-        .from("quiz_sessions")
-        .update({
-          guzzler_score: base.score,
-          guzzler_report: result as unknown as Json,
-        })
-        .eq("id", sessionId)
-        .then(({ error }) => {
-          if (error) console.error("Failed to persist guzzler score:", error);
-        });
+      void updateQuizSession(sessionId, {
+        guzzler_score: base.score,
+        guzzler_report: result as unknown as Json,
+      });
     }
 
     trackFunnelEvent(sessionId, "score_revealed", undefined, { score: base.score });
