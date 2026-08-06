@@ -21,6 +21,10 @@ import { getStoredEntryIntent } from "@/lib/entry-intent";
 import { persistLeadSource } from "@/lib/lead-source";
 import { buildCoraReminders } from "@/lib/cora-reminders";
 import { SMS_CONSENT_VERSION } from "@/lib/sms-consent";
+import {
+  getPropertyIntelligence,
+  upsertPropertyIntelligence,
+} from "@/lib/property-intelligence";
 import { trackFunnelEvent } from "@/lib/funnel-events";
 import { createQuizSession, stampQuizCompleted, updateQuizSession } from "@/lib/quiz-session";
 
@@ -323,37 +327,15 @@ export default function QuizPage() {
     quizSessionId: string,
     gate: ResultsGateData,
   ) => {
-    try {
-      const reportedSqft = String(answers.square_footage ?? "").trim() || null;
-      const reportedAge = systemAgeToYears(answers.system_age);
-
-      // Upsert by quiz_session_id (one intelligence record per lead)
-      const { data: existing } = await supabase
-        .from("property_intelligence")
-        .select("id")
-        .eq("quiz_session_id", quizSessionId)
-        .maybeSingle();
-
-      const payload = {
-        quiz_session_id: quizSessionId,
-        street_address: gate.streetAddress,
-        zip_code: gate.zipCode,
-        state: "GA",
-        homeowner_reported_sqft: reportedSqft,
-        homeowner_reported_system_age: reportedAge,
-      };
-
-      if (existing) {
-        await supabase
-          .from("property_intelligence")
-          .update(payload)
-          .eq("id", existing.id);
-      } else {
-        await supabase.from("property_intelligence").insert(payload);
-      }
-    } catch (err) {
-      console.error("Failed to link property intelligence:", err);
-    }
+    // One intelligence record per lead. The select-then-insert-or-update round
+    // trip now happens server-side inside the RPC, which also means it can't
+    // race two submits into two rows.
+    await upsertPropertyIntelligence(quizSessionId, {
+      streetAddress: gate.streetAddress,
+      zipCode: gate.zipCode,
+      reportedSqft: String(answers.square_footage ?? "").trim() || null,
+      reportedAge: systemAgeToYears(answers.system_age),
+    });
   };
 
   const handleGateSubmit = async (data: ResultsGateData) => {
@@ -425,23 +407,14 @@ export default function QuizPage() {
     let lastPermitDate: string | null = null;
 
     if (sessionId) {
-      try {
-        const { data } = await supabase
-          .from("property_intelligence")
-          .select("county_year_built, source_year_built, permit_silence_years, permit_last_hvac_date, homeowner_reported_system_age")
-          .eq("quiz_session_id", sessionId)
-          .maybeSingle();
-
-        if (data) {
-          if (data.county_year_built) {
-            yearBuilt = data.county_year_built;
-            yearBuiltSource = data.source_year_built === "County" ? "County" : "Homeowner";
-          }
-          silenceYears = data.permit_silence_years;
-          lastPermitDate = data.permit_last_hvac_date;
+      const intel = await getPropertyIntelligence(sessionId);
+      if (intel) {
+        if (intel.county_year_built) {
+          yearBuilt = intel.county_year_built;
+          yearBuiltSource = intel.source_year_built === "County" ? "County" : "Homeowner";
         }
-      } catch (err) {
-        console.error("Failed to fetch property intelligence:", err);
+        silenceYears = intel.permit_silence_years;
+        lastPermitDate = intel.permit_last_hvac_date;
       }
     }
 

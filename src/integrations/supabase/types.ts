@@ -1652,7 +1652,31 @@ export type Database = {
         }
         Returns: string
       }
+      funnel_event_create: {
+        Args: {
+          p_event_type: string
+          p_metadata?: Json
+          p_quiz_session_id: string | null
+          p_step?: string | null
+        }
+        Returns: undefined
+      }
       is_contractor: { Args: never; Returns: boolean }
+      property_intelligence_get: {
+        Args: { p_quiz_session_id: string }
+        Returns: Json
+      }
+      property_intelligence_upsert: {
+        Args: {
+          p_quiz_session_id: string
+          p_reported_age?: number | null
+          p_reported_sqft?: string | null
+          p_state?: string | null
+          p_street_address?: string | null
+          p_zip_code?: string | null
+        }
+        Returns: undefined
+      }
       quiz_session_create: { Args: { p_patch: Json }; Returns: string }
       quiz_session_get: { Args: { p_id: string }; Returns: Json }
       quiz_session_stamp_completed: {

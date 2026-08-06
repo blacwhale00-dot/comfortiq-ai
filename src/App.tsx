@@ -16,7 +16,8 @@ import EducationPage from "./pages/EducationPage.tsx";
 import BlogPage from "./pages/BlogPage.tsx";
 import PrivacyPage from "./pages/PrivacyPage.tsx";
 import CashFlowCloserPage from "./pages/CashFlowCloserPage.tsx";
-import IntelligencePage from "./pages/IntelligencePage.tsx";
+// IntelligencePage is intentionally NOT imported or routed — see the note on
+// the removed /intelligence route below.
 import NewsletterPage from "./pages/NewsletterPage.tsx";
 // CommandCenterPage is intentionally NOT imported or routed — see the note on
 // the removed /command-center route below.
@@ -51,7 +52,20 @@ const App = () => (
             <Route path="/blog" element={<BlogPage />} />
             <Route path="/privacy" element={<PrivacyPage />} />
             <Route path="/cash-flow" element={<CashFlowCloserPage />} />
-            <Route path="/intelligence" element={<IntelligencePage />} />
+            {/*
+              /intelligence is OFFLINE pending authentication.
+
+              Same finding as /command-center below, missed on the first pass: a
+              second internal dashboard with no login of any kind. It ran
+              `select("*").limit(25)` against property_intelligence and rendered
+              every recent lead's street address and property detail to anyone
+              who knew the URL. That table is now closed to anon entirely
+              (20260806000100), so the page cannot function regardless.
+
+              The page is deliberately kept in the repo, intact. To restore: put
+              it behind Supabase Auth with an admin role, and have it read
+              through an edge function using the service role.
+            */}
             <Route path="/newsletter" element={<NewsletterPage />} />
             {/*
               /command-center is OFFLINE pending authentication.

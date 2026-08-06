@@ -3,6 +3,7 @@ import { motion } from "framer-motion";
 import { Send, Wrench } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
+import { trackFunnelEvent } from "@/lib/funnel-events";
 import {
   acknowledge,
   applyExtraction,
@@ -170,20 +171,15 @@ export default function RepairHistoryChat({ sessionId, systemAgeYears, guzzlerSc
       reasoning_summary: outputs.reasoningSummary,
     }).then(({ error }) => { if (error) console.warn("analysis not saved:", error.message); });
 
-    void supabase.from("funnel_events").insert({
-      quiz_session_id: sessionId,
-      event_type: "repair_analysis_completed",
-      step: outputs.recommendation,
-      metadata: {
-        regret_score: regret?.score ?? null,
-        confidence: outputs.confidence,
-        // replace -> hot queue; repair/monitor -> 2027 long-cycle nurture
-        nurture: outputs.recommendation === "replace" ? "hot" : "long_cycle",
-        // Electric-to-electric + aging = highest rebate leverage post-8/10.
-        // Gas homes get the efficiency pitch; electric homes get the rebate pitch.
-        rebate_leverage: computeRebateLeverage(systemType, systemAgeYears),
-      },
-    }).then(({ error }) => { if (error) console.warn("nurture tag not saved:", error.message); });
+    trackFunnelEvent(sessionId, "repair_analysis_completed", outputs.recommendation, {
+      regret_score: regret?.score ?? null,
+      confidence: outputs.confidence,
+      // replace -> hot queue; repair/monitor -> 2027 long-cycle nurture
+      nurture: outputs.recommendation === "replace" ? "hot" : "long_cycle",
+      // Electric-to-electric + aging = highest rebate leverage post-8/10.
+      // Gas homes get the efficiency pitch; electric homes get the rebate pitch.
+      rebate_leverage: computeRebateLeverage(systemType, systemAgeYears),
+    });
 
     onComplete({ outputs, rebates, facts });
   };
