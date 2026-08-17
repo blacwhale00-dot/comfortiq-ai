@@ -1,7 +1,15 @@
-project_id = "suacudduadcxzpyxetct"
+project_id = "hlzgdlomdwblxalzwurt"
 
 [functions.analyze-audit]
 verify_jwt = false
 
 [functions.send-due-reminders]
+verify_jwt = false
+
+# Twilio can't send a Supabase JWT, so the inbound webhook authenticates via the
+# X-Twilio-Signature check inside the function instead.
+[functions.sms-inbound]
+verify_jwt = false
+
+[functions.send-report]
 verify_jwt = false

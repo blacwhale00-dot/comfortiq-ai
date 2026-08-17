@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import ConciergeMessage from "@/components/quiz/ConciergeMessage";
 import UnlockProgress from "@/components/quiz/UnlockProgress";
 import GuzzlerScoreGauge from "@/components/quiz/GuzzlerScoreGauge";
-import { supabase } from "@/integrations/supabase/client";
+import ShareScore from "@/components/quiz/ShareScore";
 import {
   UPLOAD_SLOTS,
   computeUploadProgress,
@@ -16,6 +16,7 @@ import {
 import { tierForScore } from "@/lib/guzzler-score";
 import { gradeForScore } from "@/lib/guzzler-reveal";
 import { trackFunnelEvent } from "@/lib/funnel-events";
+import { getQuizSession } from "@/lib/quiz-session";
 
 // Book-a-free-audit destination from the Build Order. Same link as the trophy
 // screen — the audit offer survives even when the discount window doesn't.
@@ -45,15 +46,9 @@ export default function IncompletePage() {
     }
     let active = true;
     void (async () => {
-      const { data, error } = await supabase
-        .from("quiz_sessions")
-        .select(
-          "guzzler_score, upload_outdoor, upload_breaker, upload_thermostat, upload_air_handler, upload_bill",
-        )
-        .eq("id", sessionId)
-        .maybeSingle();
+      const data = await getQuizSession(sessionId);
       if (!active) return;
-      if (error || !data) {
+      if (!data) {
         navigate("/quiz", { replace: true });
         return;
       }
@@ -92,7 +87,7 @@ export default function IncompletePage() {
 
   return (
     <Layout>
-      <div className="container py-10 max-w-xl space-y-6">
+      <div className="container py-8 sm:py-10 max-w-xl space-y-5 sm:space-y-6">
         <div className="text-center">
           <h1 className="font-display font-extrabold text-2xl md:text-3xl text-foreground">
             Your GuzzlerScore Results
@@ -123,6 +118,15 @@ export default function IncompletePage() {
             <ArrowRight className="w-5 h-5" />
           </a>
         </Button>
+
+        {/* The discount window closed, but the score is still theirs to share.
+            Same tier/grade derivation as the gauge above, so they can't differ. */}
+        {score != null && (
+          <ShareScore
+            result={{ score, grade: gradeForScore(score), tier: tierForScore(score) }}
+            delay={0.2}
+          />
+        )}
       </div>
     </Layout>
   );

@@ -6,9 +6,9 @@ import IntentGate from "@/components/IntentGate";
 import { AlertOctagon, TrendingDown, BadgeCheck, Gauge, ShieldCheck, Clock, Heart, ArrowRight } from "lucide-react";
 import { motion } from "framer-motion";
 import guzzlerLogo from "@/assets/guzzler-score-logo.png";
-import { supabase } from "@/integrations/supabase/client";
 import { UPLOAD_SLOTS, computeUploadProgress, type UploadSlotId } from "@/lib/upload-progress";
 import { hasSeenEntryGate } from "@/lib/entry-intent";
+import { getQuizSession } from "@/lib/quiz-session";
 
 const fadeUp = {
   hidden: { opacity: 0, y: 16 },
@@ -95,14 +95,10 @@ export default function LandingPage() {
     if (hasSeenEntryGate() || !sessionId) return;
     let active = true;
     void (async () => {
-      const { data, error } = await supabase
-        .from("quiz_sessions")
-        .select("guzzler_score")
-        .eq("id", sessionId)
-        .maybeSingle();
+      const session = await getQuizSession(sessionId);
       if (!active) return;
       // Already scored → past the doors; let them land on the dashboard.
-      if (!error && data?.guzzler_score != null) return;
+      if (session?.guzzler_score != null) return;
       setShowGate(true);
     })();
     return () => {
@@ -120,16 +116,10 @@ export default function LandingPage() {
     if (sessionStorage.getItem("comfortiq_incomplete_seen")) return;
     let active = true;
     void (async () => {
-      const { data, error } = await supabase
-        .from("quiz_sessions")
-        .select(
-          "guzzler_score, upload_outdoor, upload_breaker, upload_thermostat, upload_air_handler, upload_bill",
-        )
-        .eq("id", sessionId)
-        .maybeSingle();
-      if (!active || error || !data || data.guzzler_score == null) return;
+      const session = await getQuizSession(sessionId);
+      if (!active || !session || session.guzzler_score == null) return;
       const uploaded = new Set<UploadSlotId>(
-        UPLOAD_SLOTS.filter((s) => data[s.uploadKey]).map((s) => s.id),
+        UPLOAD_SLOTS.filter((s) => session[s.uploadKey]).map((s) => s.id),
       );
       if (computeUploadProgress(uploaded).isComplete) return;
       sessionStorage.setItem("comfortiq_incomplete_seen", "1");

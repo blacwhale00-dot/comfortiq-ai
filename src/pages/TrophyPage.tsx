@@ -8,10 +8,12 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import ConciergeMessage from "@/components/quiz/ConciergeMessage";
 import UnlockProgress from "@/components/quiz/UnlockProgress";
-import { MAX_UNLOCK_VALUE } from "@/lib/guzzler-reveal";
+import ShareScore from "@/components/quiz/ShareScore";
+import { MAX_UNLOCK_VALUE, gradeForScore } from "@/lib/guzzler-reveal";
+import { tierForScore } from "@/lib/guzzler-score";
 import { UPLOAD_SLOTS, computeUploadProgress, type UploadSlotId } from "@/lib/upload-progress";
 import { supabase } from "@/integrations/supabase/client";
-import type { TablesUpdate } from "@/integrations/supabase/types";
+import { getQuizSession } from "@/lib/quiz-session";
 
 // Book-a-free-audit destination from the Build Order.
 const BOOK_AUDIT_URL = "https://app.smbsolution.ai/audit?ref=dma-8d24de6b";
@@ -27,7 +29,11 @@ export default function TrophyPage() {
 
   const [stage, setStage] = useState<Stage>("capture");
   const [email, setEmail] = useState("");
+  // Persisted preliminary score, used only to render the share card. Null until
+  // the session loads (or if the session predates the guzzler_score column).
+  const [score, setScore] = useState<number | null>(null);
   const [touched, setTouched] = useState(false);
+  const [sendError, setSendError] = useState(false);
 
   const emailValid = EMAIL_RE.test(email.trim());
   const showError = touched && !emailValid;
@@ -52,14 +58,8 @@ export default function TrophyPage() {
     if (!sessionId) return;
     let active = true;
     void (async () => {
-      const { data, error } = await supabase
-        .from("quiz_sessions")
-        .select(
-          "email, upload_outdoor, upload_breaker, upload_thermostat, upload_air_handler, upload_bill",
-        )
-        .eq("id", sessionId)
-        .maybeSingle();
-      if (!active || error || !data) return;
+      const data = await getQuizSession(sessionId);
+      if (!active || !data) return;
 
       const uploaded = new Set<UploadSlotId>(
         UPLOAD_SLOTS.filter((s) => data[s.uploadKey]).map((s) => s.id),
@@ -70,6 +70,7 @@ export default function TrophyPage() {
       }
 
       if (data.email) setEmail((prev) => prev || data.email!);
+      setScore(data.guzzler_score);
     })();
     return () => {
       active = false;
@@ -80,40 +81,49 @@ export default function TrophyPage() {
     setTouched(true);
     if (!emailValid || stage === "sending") return;
 
-    setStage("sending");
-
-    // MVP handoff: persist the report email + flag the session so a real
-    // PDF/email backend can pick it up later. We don't block the confirmation
-    // on the DB write — the lead has done their part.
-    if (sessionId) {
-      const update: TablesUpdate<"quiz_sessions"> = {
-        email: email.trim(),
-        funnel_status: "report_requested",
-      };
-      try {
-        await supabase.from("quiz_sessions").update(update).eq("id", sessionId);
-      } catch (err) {
-        console.error("Failed to save report email:", err);
-      }
+    // No session means there's no GOLD result to hand off — shouldn't happen in
+    // the real funnel (you reach /trophy via /unlock), but fail honestly if it does.
+    if (!sessionId) {
+      setSendError(true);
+      return;
     }
 
-    setStage("confirmed");
+    setSendError(false);
+    setStage("sending");
+
+    // Trigger the server-side report handoff. The send-report edge function
+    // re-verifies GOLD, records the request idempotently, and advances
+    // funnel_status — the actual PDF render + email run behind this same call
+    // (Phase 3 generator). We only confirm to the homeowner once it's accepted.
+    try {
+      const { data, error } = await supabase.functions.invoke("send-report", {
+        body: { sessionId, email: email.trim() },
+      });
+      if (error || (data && data.error)) {
+        throw error ?? new Error(data.error);
+      }
+      setStage("confirmed");
+    } catch (err) {
+      console.error("Report handoff failed:", err);
+      setSendError(true);
+      setStage("capture");
+    }
   };
 
   return (
     <Layout>
-      <div className="container py-10 max-w-xl space-y-6 text-center">
+      <div className="container py-8 sm:py-10 max-w-xl space-y-6 text-center">
         <motion.div
           initial={{ opacity: 0, scale: 0.7, rotate: -8 }}
           animate={{ opacity: 1, scale: 1, rotate: 0 }}
           transition={{ type: "spring", stiffness: 180, damping: 12 }}
-          className="inline-flex items-center justify-center w-24 h-24 rounded-full gradient-amber shadow-elevated"
+          className="inline-flex items-center justify-center w-20 h-20 sm:w-24 sm:h-24 rounded-full gradient-amber shadow-elevated"
         >
-          <Trophy className="w-12 h-12 text-primary-foreground" />
+          <Trophy className="w-10 h-10 sm:w-12 sm:h-12 text-primary-foreground" />
         </motion.div>
 
         <div>
-          <h1 className="font-display font-extrabold text-3xl text-foreground">You did it! 🏆</h1>
+          <h1 className="font-display font-extrabold text-2xl sm:text-3xl text-foreground">You did it! 🏆</h1>
           <p className="mt-2 text-sm text-muted-foreground">
             GOLD status unlocked — you've revealed your TRUE Guzzler Score.
           </p>
@@ -145,7 +155,10 @@ export default function TrophyPage() {
                   placeholder="you@email.com"
                   value={email}
                   disabled={stage === "sending"}
-                  onChange={(e) => setEmail(e.target.value)}
+                  onChange={(e) => {
+                    setEmail(e.target.value);
+                    if (sendError) setSendError(false);
+                  }}
                   onBlur={() => setTouched(true)}
                   onKeyDown={(e) => {
                     if (e.key === "Enter") handleSend();
@@ -156,6 +169,11 @@ export default function TrophyPage() {
               </div>
               {showError && (
                 <p className="text-xs text-destructive">Please enter a valid email address.</p>
+              )}
+              {sendError && !showError && (
+                <p className="text-xs text-destructive">
+                  We couldn't send that just now. Please try again in a moment.
+                </p>
               )}
             </div>
 
@@ -190,8 +208,9 @@ export default function TrophyPage() {
               <p className="font-display font-bold text-lg text-foreground">Report on its way!</p>
               <p className="text-sm text-muted-foreground">
                 We're generating your full Guzzler Score report and sending it to{" "}
-                <span className="font-medium text-foreground">{email.trim()}</span>. Check your
-                inbox in the next few minutes.
+                {/* A long address must wrap, not widen the card. */}
+                <span className="font-medium text-foreground break-all">{email.trim()}</span>. Check
+                your inbox in the next few minutes.
               </p>
             </div>
 
@@ -206,6 +225,18 @@ export default function TrophyPage() {
               </a>
             </Button>
           </motion.div>
+        )}
+
+        {/* GOLD is the peak brag moment, so the share card lives here too —
+            below the report/booking actions so it never outranks them. Grade and
+            tier are derived from the same pure helpers the score screens use. */}
+        {score != null && (
+          <div className="text-left">
+            <ShareScore
+              result={{ score, grade: gradeForScore(score), tier: tierForScore(score) }}
+              delay={0.2}
+            />
+          </div>
         )}
       </div>
     </Layout>

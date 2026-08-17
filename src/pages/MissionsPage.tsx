@@ -133,6 +133,7 @@ export default function MissionsPage() {
               <Button
                 variant="hero"
                 size="xl"
+                className="w-full sm:w-auto"
                 disabled={!anyUploaded}
                 onClick={() => navigate("/estimate")}
               >

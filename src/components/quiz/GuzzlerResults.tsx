@@ -8,6 +8,7 @@ import WasteSummary from "./WasteSummary";
 import UnlockProgress from "./UnlockProgress";
 import GuzzlerEvidence from "./GuzzlerEvidence";
 import ConciergeMessage from "./ConciergeMessage";
+import ShareScore from "./ShareScore";
 
 // The four factors the scoring engine actually weighs (src/lib/guzzler-score.ts).
 // The reveal breakdown is built from these so the bars can never disagree with
@@ -85,6 +86,11 @@ export default function GuzzlerResults({ data }: GuzzlerResultsProps) {
           <ArrowRight className="w-5 h-5" />
         </Button>
       </motion.div>
+
+      {/* Share sits below the CTA on purpose: the reveal's job is still to move
+          the homeowner into the photo upload, so bragging never outranks it.
+          Only score/grade/tier are passed — see src/lib/share-score.ts. */}
+      <ShareScore result={{ score: data.score, grade: data.grade, tier: data.tier }} />
 
       <GuzzlerEvidence
         yearBuilt={data.yearBuilt}

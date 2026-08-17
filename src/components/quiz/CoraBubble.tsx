@@ -25,7 +25,11 @@ export default function CoraBubble({ comment, hint }: CoraBubbleProps) {
   }, [comment]);
 
   return (
-    <div className="fixed bottom-4 right-4 z-50 flex flex-col items-end gap-2 sm:bottom-6 sm:right-6">
+    // The bottom offset clears the iOS home indicator; the width cap is
+    // viewport-aware so the bubble can never push the page sideways on a narrow
+    // phone. QuizPage reserves matching bottom padding so the bubble never
+    // covers the primary CTA.
+    <div className="fixed bottom-[calc(env(safe-area-inset-bottom,0px)+1rem)] right-4 z-50 flex flex-col items-end gap-2 sm:bottom-[calc(env(safe-area-inset-bottom,0px)+1.5rem)] sm:right-6 max-w-[calc(100vw-2rem)]">
       <AnimatePresence>
         {open && visibleComment && (
           <motion.div
@@ -34,13 +38,13 @@ export default function CoraBubble({ comment, hint }: CoraBubbleProps) {
             animate={{ opacity: 1, y: 0, scale: 1 }}
             exit={{ opacity: 0, y: 8, scale: 0.96 }}
             transition={{ duration: 0.25, ease: "easeOut" }}
-            className="relative max-w-[280px] sm:max-w-[320px] rounded-2xl bg-card shadow-elevated border border-border p-4 pr-8"
+            className="relative w-[min(280px,calc(100vw-2rem))] sm:w-[320px] rounded-2xl bg-card shadow-elevated border border-border p-4 pr-8"
           >
             <button
               type="button"
               onClick={() => setOpen(false)}
               aria-label="Dismiss Cora"
-              className="absolute right-2 top-2 rounded-md p-1 text-muted-foreground hover:bg-muted hover:text-foreground transition-colors"
+              className="absolute right-1.5 top-1.5 inline-flex h-8 w-8 items-center justify-center rounded-md text-muted-foreground hover:bg-muted hover:text-foreground transition-colors"
             >
               <X className="h-3.5 w-3.5" />
             </button>

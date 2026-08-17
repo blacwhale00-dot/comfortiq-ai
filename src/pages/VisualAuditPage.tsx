@@ -13,6 +13,7 @@ import { useAuditUpload } from "@/hooks/useAuditUpload";
 import { UPLOAD_SLOTS } from "@/lib/upload-progress";
 import RepairHistoryChat, { type RepairAnalysisDone } from "@/components/quiz/RepairHistoryChat";
 import RepairReplaceResults from "@/components/quiz/RepairReplaceResults";
+import { getQuizSession, updateQuizSession } from "@/lib/quiz-session";
 
 // Shape returned by the analyze-audit edge function.
 interface RoiReport {
@@ -40,14 +41,9 @@ export default function VisualAuditPage() {
   const [repairResult, setRepairResult] = useState<RepairAnalysisDone | null>(null);
   useEffect(() => {
     if (!sessionId) return;
-    void supabase
-      .from("quiz_sessions")
-      .select("system_age, guzzler_score")
-      .eq("id", sessionId)
-      .maybeSingle()
-      .then(({ data }) => {
-        if (data) setSessionFacts({ age: data.system_age, score: data.guzzler_score });
-      });
+    void getQuizSession(sessionId).then((data) => {
+      if (data) setSessionFacts({ age: data.system_age, score: data.guzzler_score });
+    });
   }, [sessionId]);
 
   // No session means they skipped the quiz — send them back to start it.
@@ -85,14 +81,11 @@ export default function VisualAuditPage() {
       if (error) throw error;
       setRoiReport(data?.report || null);
 
-      await supabase
-        .from("quiz_sessions")
-        .update({
-          total_discount_earned: progress.unlockedValue,
-          funnel_status: "audit_complete",
-          roi_report: data?.report ?? null,
-        })
-        .eq("id", sessionId);
+      await updateQuizSession(sessionId, {
+        total_discount_earned: progress.unlockedValue,
+        funnel_status: "audit_complete",
+        roi_report: data?.report ?? null,
+      });
     } catch (err) {
       console.error("Analysis failed:", err);
     } finally {
@@ -129,10 +122,10 @@ export default function VisualAuditPage() {
         </div>
       </div>
 
-      <div className="container py-8">
+      <div className="container py-6 sm:py-8">
         {/* Header */}
         <div className="text-center mb-8">
-          <h1 className="text-3xl md:text-4xl font-display font-extrabold text-foreground mb-2">
+          <h1 className="text-2xl sm:text-3xl md:text-4xl font-display font-extrabold text-foreground mb-2">
             Visual Audit & ROI Report
           </h1>
           <p className="text-muted-foreground max-w-lg mx-auto">
@@ -160,9 +153,9 @@ export default function VisualAuditPage() {
           </motion.div>
         </div>
 
-        <div className="grid lg:grid-cols-5 gap-8">
+        <div className="grid lg:grid-cols-5 gap-6 lg:gap-8">
           {/* Upload slots — shared with /unlock */}
-          <div className="lg:col-span-3 space-y-8">
+          <div className="lg:col-span-3 space-y-8 min-w-0">
             <div className="space-y-3">
               {UPLOAD_SLOTS.map((slot, i) => (
                 <UploadSlot
@@ -255,7 +248,14 @@ export default function VisualAuditPage() {
                   </div>
 
                   <div className="text-center">
-                    <Button variant="hero" size="xl" onClick={() => navigate("/estimate")}>
+                    {/* Full-width below sm — an xl button's fixed px-10 padding
+                        overflows a 320px viewport otherwise. */}
+                    <Button
+                      variant="hero"
+                      size="xl"
+                      className="w-full sm:w-auto"
+                      onClick={() => navigate("/estimate")}
+                    >
                       View My Estimate
                       <ArrowRight className="w-5 h-5" />
                     </Button>
@@ -266,6 +266,7 @@ export default function VisualAuditPage() {
                   <Button
                     variant="hero"
                     size="xl"
+                    className="w-full sm:w-auto"
                     disabled={!anyUploaded || analyzing}
                     onClick={handleAnalyze}
                   >

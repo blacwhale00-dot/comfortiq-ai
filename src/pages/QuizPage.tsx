@@ -1,7 +1,7 @@
 import { useState, useCallback, useEffect, useRef } from "react";
 import Layout from "@/components/Layout";
 import { supabase } from "@/integrations/supabase/client";
-import type { TablesInsert, TablesUpdate } from "@/integrations/supabase/types";
+import type { Json, TablesInsert, TablesUpdate } from "@/integrations/supabase/types";
 import { AnimatePresence, motion } from "framer-motion";
 import {
   quizQuestions,
@@ -20,7 +20,13 @@ import { deriveRevealData } from "@/lib/guzzler-reveal";
 import { getStoredEntryIntent } from "@/lib/entry-intent";
 import { persistLeadSource } from "@/lib/lead-source";
 import { buildCoraReminders } from "@/lib/cora-reminders";
+import { SMS_CONSENT_VERSION } from "@/lib/sms-consent";
+import {
+  getPropertyIntelligence,
+  upsertPropertyIntelligence,
+} from "@/lib/property-intelligence";
 import { trackFunnelEvent } from "@/lib/funnel-events";
+import { createQuizSession, stampQuizCompleted, updateQuizSession } from "@/lib/quiz-session";
 
 type Phase = "intro" | "question" | "gate" | "analyzing" | "results";
 
@@ -74,28 +80,15 @@ function buildPainPayload(answers: Record<string, string | number>) {
 function persistEntryIntent(quizSessionId: string) {
   const intent = getStoredEntryIntent();
   if (!intent || intent === "newsletter") return;
-  void supabase
-    .from("quiz_sessions")
-    .update({ entry_intent: intent })
-    .eq("id", quizSessionId)
-    .then(({ error }) => {
-      if (error) console.warn("entry_intent not persisted:", error.message);
-    });
+  void updateQuizSession(quizSessionId, { entry_intent: intent });
 }
 
 // Stamp the moment the quiz is completed — the anchor for the 48h upload window
-// (see guzzler-timer.ts). First-write-wins via `.is(null)` so the countdown never
-// resets on a re-submit. Fire-and-forget; if the column isn't migrated yet,
-// Supabase returns an error we just log and the timer falls back to created_at.
+// (see guzzler-timer.ts). First-write-wins is enforced server-side so the
+// countdown never resets on a re-submit. Fire-and-forget: the quiz must not
+// block on it.
 function stampQuizCompletedAt(quizSessionId: string, completedAt: string) {
-  void supabase
-    .from("quiz_sessions")
-    .update({ quiz_completed_at: completedAt })
-    .eq("id", quizSessionId)
-    .is("quiz_completed_at", null)
-    .then(({ error }) => {
-      if (error) console.warn("quiz_completed_at not stamped:", error.message);
-    });
+  void stampQuizCompleted(quizSessionId, completedAt);
 }
 
 // Build + persist Cora's 5 reminder SMS rows at quiz completion. The TS engine
@@ -107,6 +100,34 @@ function stampQuizCompletedAt(quizSessionId: string, completedAt: string) {
 // RLS (42501) because cora_reminders deliberately has no SELECT policy for
 // anon (rows hold phone numbers), and the conflict-arbitration path needs row
 // visibility. Any other error is logged without breaking the quiz.
+// Record the TCPA consent decision — both a yes and a no. A declined row is
+// evidence we asked and were told no, which is worth as much as a yes if the
+// question ever comes up. Append-only (see the consent_records migration);
+// fire-and-forget so it can never break the quiz.
+function persistSmsConsent(
+  quizSessionId: string,
+  phone: string,
+  consented: boolean,
+) {
+  // The client sends WHETHER they consented and which disclosure version was on
+  // screen — never the disclosure wording itself. The server looks the text up
+  // from that version and stores it, so a record can only ever describe a
+  // disclosure we actually published (20260803070000_consent_records_gateway).
+  void supabase
+    .rpc("consent_record_create", {
+      p_quiz_session_id: quizSessionId,
+      p_channel: "sms",
+      p_address: phone,
+      p_consented: consented,
+      p_version: SMS_CONSENT_VERSION,
+      p_page_url: typeof window !== "undefined" ? window.location.href : null,
+      p_user_agent: typeof navigator !== "undefined" ? navigator.userAgent : null,
+    })
+    .then(({ error }) => {
+      if (error) console.warn("consent record not persisted:", error.message);
+    });
+}
+
 function persistCoraReminders(
   quizSessionId: string,
   completedAt: string,
@@ -188,19 +209,15 @@ export default function QuizPage() {
 
       try {
         if (sessionId) {
-          await supabase.from("quiz_sessions").update(data).eq("id", sessionId);
+          await updateQuizSession(sessionId, data);
           return sessionId;
         }
-        const { data: inserted } = await supabase
-          .from("quiz_sessions")
-          .insert(data)
-          .select("id")
-          .single();
-        if (inserted) {
-          setSessionId(inserted.id);
-          persistEntryIntent(inserted.id);
-          void persistLeadSource(inserted.id);
-          return inserted.id;
+        const newId = await createQuizSession(data);
+        if (newId) {
+          setSessionId(newId);
+          persistEntryIntent(newId);
+          void persistLeadSource(newId);
+          return newId;
         }
       } catch (err) {
         console.error("Failed to save:", err);
@@ -218,14 +235,31 @@ export default function QuizPage() {
       if (idx === -1) return;
       const opt = quizQuestions[idx].options.find((o) => o.value === String(value));
       try {
+        // ⚠️ BROKEN AGAINST THE LIVE SCHEMA — this write has never succeeded on
+        // this database, and the cast below is what keeps that fact visible
+        // rather than compiling it away.
+        //
+        // The payload targets ComfortIQ's intended quiz_answers shape (quiz_id,
+        // question_number, answer_text) defined in
+        // supabase/_pending_redesign/20260622000000_quiz_answers.sql — which was
+        // never applied. The quiz_answers table that actually exists is D.A.V.E's:
+        // (id, homeowner_id NOT NULL, question_id uuid NOT NULL, answer_value
+        // text NOT NULL, created_at). None of quiz_id / question_number /
+        // answer_text exist there, question_id is a uuid rather than a slug like
+        // "system_age", and homeowner_id is required and never supplied.
+        //
+        // It fails silently: supabase-js RESOLVES with { error } instead of
+        // throwing, so this catch never fires and nothing is logged. Behaviour is
+        // left exactly as-is pending a decision on which schema is correct —
+        // apply the pending migration, or rewrite this against D.A.V.E's table.
         await supabase.from("quiz_answers").upsert(
           {
             quiz_id: quizId,
             question_number: idx + 1,
             question_id: questionId,
-            answer_value: opt?.weight ?? 0,
+            answer_value: String(opt?.weight ?? 0),
             answer_text: opt?.label ?? String(value),
-          },
+          } as never,
           { onConflict: "quiz_id,question_number" },
         );
       } catch (err) {
@@ -293,37 +327,15 @@ export default function QuizPage() {
     quizSessionId: string,
     gate: ResultsGateData,
   ) => {
-    try {
-      const reportedSqft = String(answers.square_footage ?? "").trim() || null;
-      const reportedAge = systemAgeToYears(answers.system_age);
-
-      // Upsert by quiz_session_id (one intelligence record per lead)
-      const { data: existing } = await supabase
-        .from("property_intelligence")
-        .select("id")
-        .eq("quiz_session_id", quizSessionId)
-        .maybeSingle();
-
-      const payload = {
-        quiz_session_id: quizSessionId,
-        street_address: gate.streetAddress,
-        zip_code: gate.zipCode,
-        state: "GA",
-        homeowner_reported_sqft: reportedSqft,
-        homeowner_reported_system_age: reportedAge,
-      };
-
-      if (existing) {
-        await supabase
-          .from("property_intelligence")
-          .update(payload)
-          .eq("id", existing.id);
-      } else {
-        await supabase.from("property_intelligence").insert(payload);
-      }
-    } catch (err) {
-      console.error("Failed to link property intelligence:", err);
-    }
+    // One intelligence record per lead. The select-then-insert-or-update round
+    // trip now happens server-side inside the RPC, which also means it can't
+    // race two submits into two rows.
+    await upsertPropertyIntelligence(quizSessionId, {
+      streetAddress: gate.streetAddress,
+      zipCode: gate.zipCode,
+      reportedSqft: String(answers.square_footage ?? "").trim() || null,
+      reportedAge: systemAgeToYears(answers.system_age),
+    });
   };
 
   const handleGateSubmit = async (data: ResultsGateData) => {
@@ -341,25 +353,24 @@ export default function QuizPage() {
         street_address: data.streetAddress,
         zip_code: data.zipCode,
         funnel_status: "quiz_complete",
+        // The flag send-due-reminders gates on. Only ever set from an
+        // affirmative tick — never defaulted true, never inferred.
+        sms_consent: data.smsConsent,
+        sms_consent_at: data.smsConsent ? new Date().toISOString() : null,
       };
 
       if (activeId) {
-        await supabase.from("quiz_sessions").update(baseRecord).eq("id", activeId);
+        await updateQuizSession(activeId, baseRecord);
       } else {
-        const insertData: TablesInsert<"quiz_sessions"> = {
+        const newId = await createQuizSession({
           ...buildPainPayload(answers),
           ...baseRecord,
-        };
-        const { data: inserted } = await supabase
-          .from("quiz_sessions")
-          .insert(insertData)
-          .select("id")
-          .single();
-        if (inserted) {
-          activeId = inserted.id;
-          setSessionId(inserted.id);
-          persistEntryIntent(inserted.id);
-          void persistLeadSource(inserted.id);
+        });
+        if (newId) {
+          activeId = newId;
+          setSessionId(newId);
+          persistEntryIntent(newId);
+          void persistLeadSource(newId);
         }
       }
 
@@ -369,7 +380,13 @@ export default function QuizPage() {
         // so their 48h windows can never drift apart.
         const completedAt = new Date().toISOString();
         stampQuizCompletedAt(activeId, completedAt);
-        persistCoraReminders(activeId, completedAt, firstName, data.phone);
+        // Log the consent decision either way, then schedule reminders ONLY on
+        // an affirmative one. No consent, no drip — the worker independently
+        // re-checks this server-side, so this is the first of two gates.
+        persistSmsConsent(activeId, data.phone, data.smsConsent);
+        if (data.smsConsent) {
+          persistCoraReminders(activeId, completedAt, firstName, data.phone);
+        }
         trackFunnelEvent(activeId, "contact_submitted");
         await linkPropertyIntelligence(activeId, data);
       }
@@ -390,23 +407,14 @@ export default function QuizPage() {
     let lastPermitDate: string | null = null;
 
     if (sessionId) {
-      try {
-        const { data } = await supabase
-          .from("property_intelligence")
-          .select("county_year_built, source_year_built, permit_silence_years, permit_last_hvac_date, homeowner_reported_system_age")
-          .eq("quiz_session_id", sessionId)
-          .maybeSingle();
-
-        if (data) {
-          if (data.county_year_built) {
-            yearBuilt = data.county_year_built;
-            yearBuiltSource = data.source_year_built === "County" ? "County" : "Homeowner";
-          }
-          silenceYears = data.permit_silence_years;
-          lastPermitDate = data.permit_last_hvac_date;
+      const intel = await getPropertyIntelligence(sessionId);
+      if (intel) {
+        if (intel.county_year_built) {
+          yearBuilt = intel.county_year_built;
+          yearBuiltSource = intel.source_year_built === "County" ? "County" : "Homeowner";
         }
-      } catch (err) {
-        console.error("Failed to fetch property intelligence:", err);
+        silenceYears = intel.permit_silence_years;
+        lastPermitDate = intel.permit_last_hvac_date;
       }
     }
 
@@ -425,22 +433,22 @@ export default function QuizPage() {
       yearBuiltSource,
     });
 
-    // Persist the engine's score so it can be re-displayed later without
-    // recomputing (the incomplete/expired funnel screen reads it back). Fire and
-    // forget — the reveal shouldn't wait on this write.
-    if (sessionId) {
-      void supabase
-        .from("quiz_sessions")
-        .update({ guzzler_score: base.score })
-        .eq("id", sessionId)
-        .then(({ error }) => {
-          if (error) console.error("Failed to persist guzzler score:", error);
-        });
-    }
-
     // Engine owns score/tier; the reveal layer adds grade, categories, waste,
     // drivers and the unlock-progress values from the raw 12 answers.
     const result = deriveRevealData(base, answers);
+
+    // Persist the score AND the full reveal payload so both can be reused later
+    // without recomputing: the incomplete/expired screen reads guzzler_score, and
+    // the GOLD PDF (send-report edge function) renders straight from
+    // guzzler_report — the exact values shown here, no scoring logic duplicated
+    // server-side. Fire and forget — the reveal shouldn't wait on this write.
+    if (sessionId) {
+      void updateQuizSession(sessionId, {
+        guzzler_score: base.score,
+        guzzler_report: result as unknown as Json,
+      });
+    }
+
     trackFunnelEvent(sessionId, "score_revealed", undefined, { score: base.score });
 
     setGuzzlerData(result);
@@ -452,8 +460,11 @@ export default function QuizPage() {
 
   return (
     <Layout>
-      {/* Progress bar */}
-      <div className="bg-surface border-b border-border mt-6">
+      {/* Progress bar — sticks under the navbar on phones so the homeowner can
+          always see how far through the 12 questions they are without scrolling
+          back up. Static from md up, where the whole card fits on screen. */}
+      {/* 90px = the Navbar's mobile height (pt-3 + h-[68px] + pb-2.5). */}
+      <div className="bg-surface border-b border-border mt-6 sticky top-[90px] z-30 md:static">
         <div className="container py-3">
           <div className="flex items-center justify-between mb-1.5">
             <p className="text-xs font-semibold tracking-wide uppercase text-muted-foreground">
@@ -478,7 +489,9 @@ export default function QuizPage() {
         </div>
       </div>
 
-      <div ref={scrollRef} className="container py-8 max-w-xl">
+      {/* pb-28 reserves room for the fixed CoraBubble (48px launcher + inset) so
+          it can never sit on top of the Next / Continue button on a phone. */}
+      <div ref={scrollRef} className="container py-6 sm:py-8 pb-28 sm:pb-32 max-w-xl">
         <AnimatePresence mode="wait">
           {/* Intro */}
           {phase === "intro" && (

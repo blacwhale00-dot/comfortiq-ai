@@ -57,7 +57,7 @@ export default function UnlockPage() {
 
   return (
     <Layout>
-      <div className="container py-8 max-w-xl space-y-6">
+      <div className="container py-6 sm:py-8 max-w-xl space-y-5 sm:space-y-6">
         {/* Intro */}
         <div className="text-center">
           <h1 className="font-display font-extrabold text-2xl md:text-3xl text-foreground">
@@ -106,7 +106,7 @@ export default function UnlockPage() {
           <div className="text-center pt-2">
             <button
               onClick={() => navigate("/incomplete")}
-              className="text-sm text-muted-foreground hover:text-foreground transition-colors underline underline-offset-4"
+              className="tap-target inline-flex items-center justify-center px-4 text-sm text-muted-foreground hover:text-foreground transition-colors underline underline-offset-4"
             >
               I'll finish this later
             </button>

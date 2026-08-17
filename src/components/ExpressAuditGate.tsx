@@ -5,8 +5,8 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Zap } from "lucide-react";
-import { supabase } from "@/integrations/supabase/client";
 import { persistLeadSource } from "@/lib/lead-source";
+import { createQuizSession } from "@/lib/quiz-session";
 
 interface ExpressAuditGateProps {
   open: boolean;
@@ -26,22 +26,18 @@ export default function ExpressAuditGate({ open, onOpenChange }: ExpressAuditGat
 
     setSubmitting(true);
     try {
-      const { data, error } = await supabase
-        .from("quiz_sessions")
-        .insert({
-          first_name: firstName,
-          email,
-          phone,
-          funnel_status: "express_audit",
-        })
-        .select("id")
-        .single();
+      const newId = await createQuizSession({
+        first_name: firstName,
+        email,
+        phone,
+        funnel_status: "express_audit",
+      });
 
-      if (error) throw error;
+      if (!newId) throw new Error("Could not create session");
 
-      localStorage.setItem("comfortiq_session", data.id);
+      localStorage.setItem("comfortiq_session", newId);
       localStorage.setItem("comfortiq_express", "true");
-      void persistLeadSource(data.id);
+      void persistLeadSource(newId);
       onOpenChange(false);
       navigate("/audit");
     } catch (err) {

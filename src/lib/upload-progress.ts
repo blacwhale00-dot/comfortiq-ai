@@ -110,3 +110,88 @@ export function computeUploadProgress(uploaded: Set<UploadSlotId>): UploadProgre
     isComplete: uploadedCount === UPLOAD_SLOTS.length,
   };
 }
+
+// --- Upload validation -----------------------------------------------------
+// The `accept` attribute on a file input is a hint, not a control — it filters
+// the picker's default view and nothing more. A user can switch the picker to
+// "All Files", and a script can post anything at all. So the real check lives
+// here: pure, shared by every upload path, and unit-tested.
+
+// 15 MB comfortably fits a modern phone photo (typically 2–8 MB) while ruling
+// out video and multi-hundred-MB junk.
+export const MAX_UPLOAD_BYTES = 15 * 1024 * 1024;
+
+// Only what a homeowner could legitimately be photographing or exporting. HEIC
+// is listed explicitly — iPhones still produce it and browsers report it
+// inconsistently, so leaving it out would reject genuine uploads.
+const IMAGE_TYPES = new Set([
+  "image/jpeg",
+  "image/png",
+  "image/webp",
+  "image/heic",
+  "image/heif",
+]);
+const PDF_TYPE = "application/pdf";
+
+// `reason?: undefined` on the success arm is deliberate: this project compiles
+// with `strict: false`, where narrowing a union by `!result.ok` doesn't reliably
+// expose the failure arm's fields. Declaring the key on both arms keeps
+// `result.reason` accessible without callers resorting to casts.
+export type UploadValidation =
+  | { ok: true; reason?: undefined }
+  | { ok: false; reason: string };
+
+/**
+ * Is this file acceptable for this slot?
+ *
+ * Only the electric-bill slot takes a PDF — the equipment slots are photos, and
+ * `slot.accept` is the single source of truth for which is which, so the rule
+ * can't drift from what the UI advertises.
+ *
+ * Messages are written to be shown to a homeowner as-is.
+ */
+export function validateUploadFile(slot: UploadSlot, file: File): UploadValidation {
+  if (file.size === 0) {
+    return { ok: false, reason: "That file looks empty. Try taking the photo again." };
+  }
+  if (file.size > MAX_UPLOAD_BYTES) {
+    const mb = Math.round(file.size / (1024 * 1024));
+    return {
+      ok: false,
+      reason: `That file is ${mb} MB — please keep it under ${MAX_UPLOAD_BYTES / (1024 * 1024)} MB.`,
+    };
+  }
+
+  const pdfAllowed = slot.accept.includes("pdf");
+  const type = file.type.toLowerCase();
+
+  if (IMAGE_TYPES.has(type)) return { ok: true };
+  if (pdfAllowed && type === PDF_TYPE) return { ok: true };
+
+  return {
+    ok: false,
+    reason: pdfAllowed
+      ? "Please upload a photo (JPG, PNG or HEIC) or a PDF."
+      : "Please upload a photo — JPG, PNG or HEIC.",
+  };
+}
+
+// Storage object keys must be predictable and safe. Derive the extension from
+// the file's TYPE rather than its name: a name is attacker-controlled and can
+// carry path separators, double extensions or nothing at all.
+export function extensionForUpload(file: File): string {
+  switch (file.type.toLowerCase()) {
+    case "image/png":
+      return "png";
+    case "image/webp":
+      return "webp";
+    case "image/heic":
+      return "heic";
+    case "image/heif":
+      return "heif";
+    case PDF_TYPE:
+      return "pdf";
+    default:
+      return "jpg";
+  }
+}
