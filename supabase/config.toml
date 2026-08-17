@@ -13,3 +13,19 @@ verify_jwt = false
 
 [functions.send-report]
 verify_jwt = false
+
+# ── Speed-to-lead (Zoom instant calls) ──────────────────────────────────────
+# NOT DEPLOYED YET. Both functions depend on Will's four ZOOM_* secrets and on
+# the tables in supabase/migrations-pending/, which are unapplied. Do NOT run a
+# bare `supabase functions deploy` (it deploys everything in the folder) until
+# those land — deploy by name instead.
+
+# Called from the consumer's browser, which has no Supabase JWT. The function's
+# own gate is the server-side will_availability re-check, not the caller.
+[functions.instant-call-create]
+verify_jwt = false
+
+# Zoom can't send a Supabase JWT, so this authenticates via the x-zm-signature
+# HMAC check against ZOOM_WEBHOOK_SECRET inside the function instead.
+[functions.zoom-webhook]
+verify_jwt = false

@@ -1,9 +1,11 @@
 import { useEffect, useRef, useState } from "react";
 import { motion } from "framer-motion";
-import { Send, Wrench } from "lucide-react";
+import { Send } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
 import { trackFunnelEvent } from "@/lib/funnel-events";
+import CoraMascot from "@/components/cora/CoraMascot";
+import { bandForScore } from "@/lib/guzzler-band";
 import {
   acknowledge,
   applyExtraction,
@@ -51,13 +53,8 @@ interface Props {
   onComplete: (result: RepairAnalysisDone) => void;
 }
 
-export function bandForScore(score: number | null): GuzzlerBand | null {
-  if (score == null) return null;
-  if (score <= 25) return "sipping";
-  if (score <= 50) return "steady";
-  if (score <= 75) return "drinking";
-  return "bleeding";
-}
+// bandForScore moved to src/lib/guzzler-band.ts with its thresholds unchanged,
+// so the mascot and the calculator read the band vocabulary from one place.
 
 export default function RepairHistoryChat({ sessionId, systemAgeYears, guzzlerScore, onComplete }: Props) {
   const [flow, setFlow] = useState<FlowState>(() => initFlow(systemAgeYears));
@@ -84,13 +81,13 @@ export default function RepairHistoryChat({ sessionId, systemAgeYears, guzzlerSc
     // Regret score — every yes-path record gets one.
     const regret = facts.repair_within_24mo
       ? computeRegretScore({
-          wasFinanced: facts.was_financed,
-          repairCostUsd: facts.repair_cost_usd,
-          stillHavingIssues: facts.still_having_issues,
-          repairCount24mo: facts.repair_count_24mo,
-          systemAgeYears,
-          guzzlerBand: band,
-        })
+        wasFinanced: facts.was_financed,
+        repairCostUsd: facts.repair_cost_usd,
+        stillHavingIssues: facts.still_having_issues,
+        repairCount24mo: facts.repair_count_24mo,
+        systemAgeYears,
+        guzzlerBand: band,
+      })
       : null;
 
     // Persist the repair history (fire-and-forget contract — never break flow).
@@ -239,8 +236,14 @@ export default function RepairHistoryChat({ sessionId, systemAgeYears, guzzlerSc
 
   return (
     <div className="bg-background rounded-2xl shadow-card p-5">
+      {/* Chat-panel mascot states (17-08 brief): listening while the homeowner
+          is typing, scanning while Cora is working, idle otherwise. */}
       <div className="flex items-center gap-2 mb-3">
-        <Wrench className="w-4 h-4 text-primary" />
+        <CoraMascot
+          state={busy ? "scanning" : input.trim() ? "listening" : "idle"}
+          alt="Cora"
+          className="h-6 w-6 rounded-full overflow-hidden flex-shrink-0 block"
+        />
         <h3 className="font-display font-bold text-foreground">Quick repair check with Cora</h3>
       </div>
 
@@ -250,11 +253,10 @@ export default function RepairHistoryChat({ sessionId, systemAgeYears, guzzlerSc
             key={i}
             initial={{ opacity: 0, y: 8 }}
             animate={{ opacity: 1, y: 0 }}
-            className={`text-sm leading-relaxed rounded-xl px-4 py-2.5 max-w-[85%] ${
-              msg.role === "cora"
+            className={`text-sm leading-relaxed rounded-xl px-4 py-2.5 max-w-[85%] ${msg.role === "cora"
                 ? "bg-primary/5 border border-primary/15 text-foreground"
                 : "bg-muted text-foreground ml-auto"
-            }`}
+              }`}
           >
             {msg.text}
           </motion.div>

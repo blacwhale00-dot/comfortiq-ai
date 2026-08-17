@@ -595,6 +595,7 @@ export default function QuizPage() {
       {/* Floating Cora assistant */}
       <CoraBubble
         comment={coraComment}
+        state={phase === "analyzing" ? "scanning" : "idle"}
         hint={
           phase === "question"
             ? `Question ${currentQ + 1} of ${totalQ}`

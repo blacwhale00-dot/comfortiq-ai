@@ -9,6 +9,7 @@ import UnlockProgress from "./UnlockProgress";
 import GuzzlerEvidence from "./GuzzlerEvidence";
 import ConciergeMessage from "./ConciergeMessage";
 import ShareScore from "./ShareScore";
+import { bandForTier } from "@/lib/guzzler-band";
 
 // The four factors the scoring engine actually weighs (src/lib/guzzler-score.ts).
 // The reveal breakdown is built from these so the bars can never disagree with
@@ -68,7 +69,14 @@ export default function GuzzlerResults({ data }: GuzzlerResultsProps) {
 
       <UnlockProgress unlocked={data.unlockedValue} max={data.maxValue} />
 
-      <ConciergeMessage message={coraMessage} />
+      {/* The mascot IS the score moment. The band is derived from the tier —
+          NOT from bandForScore — so the needle and arc glow can never disagree
+          with the gauge above it. See src/lib/guzzler-band.ts for why. */}
+      <ConciergeMessage
+        message={coraMessage}
+        coraState="score_reveal"
+        coraBand={bandForTier(data.tier)}
+      />
 
       {/* CTA — opens the photo upload flow */}
       <motion.div

@@ -1,19 +1,23 @@
 import { AnimatePresence, motion } from "framer-motion";
 import { MessageCircle, X } from "lucide-react";
 import { useEffect, useState } from "react";
+import CoraMascot from "@/components/cora/CoraMascot";
+import type { CoraState } from "@/components/cora/cora-states";
 
 interface CoraBubbleProps {
   /** Latest reactive comment from Cora. Empty string = idle. */
   comment: string;
   /** Optional persistent footer line (e.g. progress hint). */
   hint?: string;
+  /** Cora's animation state — scanning while the quiz is analyzing, etc. */
+  state?: CoraState;
 }
 
 /**
  * Floating Cora assistant bubble. Appears in the bottom-right corner of the quiz
  * and animates in a fresh comment whenever `comment` changes.
  */
-export default function CoraBubble({ comment, hint }: CoraBubbleProps) {
+export default function CoraBubble({ comment, hint, state = "idle" }: CoraBubbleProps) {
   const [open, setOpen] = useState(true);
   const [visibleComment, setVisibleComment] = useState(comment);
 
@@ -49,9 +53,11 @@ export default function CoraBubble({ comment, hint }: CoraBubbleProps) {
               <X className="h-3.5 w-3.5" />
             </button>
             <div className="flex items-center gap-2 mb-1.5">
-              <div className="h-6 w-6 rounded-full gradient-teal flex items-center justify-center">
-                <span className="text-[10px] font-bold text-primary-foreground">C</span>
-              </div>
+              <CoraMascot
+                state={state}
+                alt="Cora"
+                className="h-6 w-6 rounded-full overflow-hidden flex-shrink-0 block"
+              />
               <span className="text-[11px] font-semibold uppercase tracking-wider text-primary">
                 Cora · AI Advisor
               </span>
